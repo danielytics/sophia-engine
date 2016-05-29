@@ -8,6 +8,7 @@ SOURCES += src/core/main.cpp \
 
 INCLUDEPATH += include \
                depends/moodycamel/include \
+               depends/yaml-cpp/include \
                depends/glm-0.9.7.4/include
 
 QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
@@ -22,7 +23,6 @@ macx {
     QMAKE_LFLAGS += -pagezero_size 10000 -image_base 100000000
     INCLUDEPATH += /Library/Frameworks/SDL2.framework/Headers \
                    /usr/local/Cellar/glew/1.13.0/include \
-                   /Users/dankersten/code/c++/yaml-cpp/include \
                    /usr/local/include/luajit-2.0
     LIBS += -framework OpenGL \
             -F/Library/Frameworks -framework SDL2 \
