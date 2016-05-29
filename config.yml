@@ -1,0 +1,19 @@
+# Configure graphics-related settings: resolution, vsync, anti-aliasing, etc
+graphics:
+    # Set the window resolution, should be a either 2-element list of [width, height] in pixels or one of: 720p, 1080p
+    resolution: 720p
+    # Fullscreen or windowed? Valid values are: Yes, No
+    fullscreen: No
+    # Should vertical sync be enabled? Valid values are: Yes, No
+    vsync: Yes
+    # Should Full Screen Anti Aliasing be enabled? Valid values are: No, 2x, 4x, 8x, 16x
+    fsaa: 4x
+
+# Configure telemetry and logging. This is a development/debug feature that should probably be disabled for release.
+telemetry:
+    # Development mode. Ignored in release builds, valid values are: Yes, No
+    dev_mode: Yes
+    # Is telemetry enabled? Valid values are: Yes, No or some of ["frame", "guage", "counter", "debug", "info", "warn", "error"]
+    # In release builds, frame, guage, counter and debug are ignored.
+    enabled: Yes
+
