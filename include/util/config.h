@@ -198,5 +198,19 @@ namespace Config {
             }
         };
     }
+
+    /**
+     * Custom parsing:
+     *
+     * You can get the raw YAML::Node at any point in the tree by passing
+     * a funciton (or lambda) that conforms to Def in place of any attribute definition.
+     *
+     * Example:
+     * auto parser = Config::make_parser(
+     * 		[](YAML::Node node){
+     * 			std::cout << node.IsSequence()
+     * 	);
+     * 	parser(...)
+     */
 }
 #endif // CONFIG_H
