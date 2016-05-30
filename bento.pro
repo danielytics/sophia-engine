@@ -3,16 +3,13 @@ CONFIG += console c++11
 CONFIG -= app_bundle
 CONFIG -= qt
 
-SOURCES += src/core/main.cpp \
-    src/util/telemetry.cpp
-
 INCLUDEPATH += include \
                depends/moodycamel/include \
                depends/yaml-cpp/include \
                depends/glm-0.9.7.4/include
 
 QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
-QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
+#QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
 
 # Platform-specific configuration
 #################################
@@ -49,5 +46,9 @@ unix:!macx {
 
 DISTFILES +=
 
+SOURCES += src/core/main.cpp \
+    src/util/telemetry.cpp
+
 HEADERS += \
-    include/util/telemetry.h
+    include/util/telemetry.h \
+    include/util/config.h

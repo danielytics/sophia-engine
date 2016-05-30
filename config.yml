@@ -17,3 +17,31 @@ telemetry:
     # In release builds, frame, guage, counter and debug are ignored.
     enabled: Yes
 
+test_1: 1
+test_2: 2
+test_3: 3.14
+
+test_4: hello
+test_5: world
+
+test_6: [1, 2, 3, 4, 5]
+#test_6: # Alternative syntax for test_6
+#    - 1
+#    - 2
+#    - 3
+#    - 4
+#    - 5
+test_7:
+    a: 1
+    b: hello
+    c: [1, 2, 3]
+
+test_8:
+    - foo: 1
+      bar: 3
+    - foo: 4
+      bar: 6
+
+test_9:
+    - [1, 2, 3, 4, 5]
+    - [6, 7, 8, 9, 10]
