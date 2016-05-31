@@ -2,6 +2,7 @@
 #define TELEMETRY_H
 
 #include <string>
+#include <sstream>
 #include <tuple>
 #include <map>
 #include <iostream>
@@ -10,47 +11,83 @@ template <typename T> constexpr T bitfield (T bit) { return 1 << bit; }
 
 namespace Telemetry {
     enum TelemetryType {
+        TerminateTelemetrySubsystem = 0,
         Frame   = bitfield(0),
-        Guage   = bitfield(1),
+        Gauge   = bitfield(1),
         Counter = bitfield(2),
         Debug   = bitfield(3),
         Info    = bitfield(4),
         Warn    = bitfield(5),
-    };
-
-    struct FrameData {
-
-    };
-    struct GuageData {
-
-    };
-    struct CounterData {
-
+        Error   = bitfield(6),
     };
 
     namespace internal {
-        extern unsigned int enabled_telemetry_flags;
-        extern std::map<std::string, unsigned> counters;
 
-        template <TelemetryType T, typename... Args>
+        struct FrameData {
+            float time;
+        };
+        struct GaugeData {
+            float change;
+        };
+        struct CounterData {
+            unsigned increment;
+        };
+        struct TelemetryEvent {
+            TelemetryType type;
+            std::string name_or_message;
+            union {
+                FrameData frame;
+                GaugeData gauge;
+                CounterData counter;
+            };
+        };
+        extern unsigned int enabled_telemetry_flags;
+
+        void dispatch (const TelemetryEvent&& event);
+
+        template <TelemetryType T, typename Arg, typename... Args>
         struct Recorder {
-            static inline void record () {
-                std::cout << "Generic recorder called for type " << T << " with " << sizeof...(Args) << " arguments.\n";
+            static inline void record (Arg& arg, Args&... args) {
+                std::ostringstream sstr;
+                sstr << std::forward<Arg>(arg);
+                using expander = int[];
+                (void) expander{ (sstr << std::forward<Args>(args), void(), 0)... };
+                TelemetryEvent event;
+                event.type = T;
+                event.name_or_message = std::move(sstr.str());
+                dispatch(std::move(event));
             }
         };
 
         template <typename... Args>
         struct Recorder<Frame, Args...> {
-            static inline void record (Args... args) {
-                std::cout << "Frame recorder called with " << sizeof...(Args) << " arguments.\n";
+            static inline void record (float frame_time) {
+                TelemetryEvent event;
+                event.type = Frame;
+                event.frame.time = frame_time;
+                dispatch(std::move(event));
             }
         };
 
         template <typename... Args>
         struct Recorder<Counter, Args...> {
             static inline void record (const std::string& name, unsigned increment) {
-                unsigned value = counters[name] += increment;
-                std::cout << "Counter " << name << " incremented by " << increment << ". New value: " << value << "\n";
+                TelemetryEvent event;
+                event.type = Counter;
+                event.name_or_message = name;
+                event.counter.increment = increment;
+                dispatch(std::move(event));
+            }
+        };
+
+        template <typename... Args>
+        struct Recorder<Gauge, Args...> {
+            static inline void record (const std::string& name, float change) {
+                TelemetryEvent event;
+                event.type = Gauge;
+                event.name_or_message = name;
+                event.gauge.change = change;
+                dispatch(std::move(event));
             }
         };
 
@@ -64,6 +101,29 @@ namespace Telemetry {
             internal::Recorder<T, Args...>::record(args...);
         }
     }
+
+    inline std::string&& counter (const std::string& name)
+    {
+        std::string temp{"%c:"};
+        temp += name;
+        temp += ";";
+        return std::move(temp);
+    }
+
+    inline std::string gauge (const std::string& name)
+    {
+        std::string temp{"%g:"};
+        temp += name;
+        temp += ";";
+        return std::move(temp);
+    }
+
+    unsigned peekCounter (const std::string& name);
+    float peekGauge (const std::string& name);
+
+    void init ();
+    void reset ();
+    void term ();
 }
 
 
