@@ -17,7 +17,7 @@ telemetry:
     # In release builds, frame, guage, counter and debug are ignored.
     enabled: Yes
 
-test_1: 1
+test_1: hello
 test_2: 2
 test_3: 3.14
 
@@ -33,7 +33,7 @@ test_6: [1, 2, 3, 4, 5]
 #    - 5
 test_7:
     a: 1
-    b: hello
+#   b: hello
     c: [1, 2, 3]
 
 test_8:

@@ -7,7 +7,25 @@
 #include <string>
 
 namespace Config {
-    typedef const std::function<void(const YAML::Node&)> Def;
+    enum Error {
+        NotScalar = 1,
+        NotSequence,
+        NotMap,
+        BadParse,
+        BadTypeConversion,
+        AttributeMissing
+    };
+    const std::map<Error, std::string> error_names{
+        {NotScalar, "Not Scalar"},
+        {NotSequence, "Not A Sequence"},
+        {NotMap, "Not A Map"},
+        {BadParse, "Bad Parse"},
+        {BadTypeConversion, "Bad Type Conversion"},
+        {AttributeMissing, "Attribute Missing"}
+    };
+
+    typedef std::function<void(const Error, const std::string&, const YAML::Node&)> ErrorFn;
+    typedef const std::function<void(ErrorFn, const YAML::Node&)> Def;
     typedef std::vector<Def> Defs;
 
     namespace detail {
@@ -21,13 +39,55 @@ namespace Config {
         void def (Defs& definitions, Def& definition) {
             definitions.push_back(definition);
         }
+
+        template <typename... Definitions>
+        Def make_parser (Definitions... defs) {
+            Defs def_fns = Defs{};
+            def(def_fns, defs...);
+            return [def_fns](ErrorFn error_cb, const YAML::Node& node) {
+                for (auto fn : def_fns) {
+                    fn(error_cb, node);
+                }
+            };
+        }
+
+        template <typename... Definitions>
+        struct Parser {
+            static inline std::function<void(const YAML::Node&)> make (Definitions... defs) {
+                auto error_cb = [](const Error err, const std::string& name, const YAML::Node& node) {
+                    auto error = error_names.at(err);
+                    std::cerr << "Parse error [" << error << "] on attribute: " << name << "\n" << node << "\n----------\n";
+                };
+                return Parser<ErrorFn, Definitions...>::make(error_cb, defs...);
+            }
+        };
+
+        template <typename... Definitions>
+        struct Parser<ErrorFn, Definitions...> {
+            static inline std::function<void(const YAML::Node&)> make (ErrorFn error_cb, Definitions... defs) {
+                auto parse = detail::make_parser(defs...);
+                return [parse, error_cb](const YAML::Node& node) {
+                    parse(error_cb, node);
+                };
+            }
+        };
     }
 
     /**
      * make_parser ( attribute definitions... )
+     * make_parser ( error_callback, attribute definitions... )
      *
      * Create a parser that is capable of parsing YAML data as specified
      * by the attribute definitions.
+     *
+     * If error_callback is provided, it will be called when a parsing error occurs.
+     * error_callback must be of the type ErrorFn (and any lambda should be cast to this
+     * type). ErrorFn is a void function that takes three const arguments:
+     *
+     * 	void error_callback (const Config::Error, const std::string& node_name, const YAML::Node node);
+     *
+     * If no error_callback is provided, errors will be written to stderr.
+     *
      *
      * Example:
      * 	struct { int num; } foo;
@@ -37,15 +97,9 @@ namespace Config {
      * 	parser(YAML::Load("num: 5"));
      * 	// foo.num == 5
      */
-    template <typename... Definitions>
-    Def make_parser (Definitions... defs) {
-        Defs def_fns = Defs{};
-        detail::def(def_fns, defs...);
-        return [def_fns](const YAML::Node& node) {
-            for (auto fn : def_fns) {
-                fn(node);
-            }
-        };
+    template <typename... Args>
+    std::function<void(const YAML::Node&)> make_parser (Args... args) {
+        return detail::Parser<Args...>::make(args...);
     }
 
     /**
@@ -66,10 +120,16 @@ namespace Config {
      */
     template <typename Type>
     Def scalar (const std::string& name, Type& output) {
-        return [name, &output](const YAML::Node& input) mutable {
+        return [name, &output](ErrorFn error, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsScalar()) {
-                output = node.as<Type>();
+                try {
+                    output = node.as<Type>();
+                } catch (...) {
+                    error(BadTypeConversion, name, node);
+                }
+            } else {
+                error(NotScalar, name, node);
             }
         };
     }
@@ -92,10 +152,16 @@ namespace Config {
      */
     template <typename Type>
     Def sequence (const std::string& name, Type& output) {
-        return [name, &output](const YAML::Node& input) mutable {
+        return [name, &output](ErrorFn error, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsSequence()) {
-                output = node.as<Type>();
+                try {
+                    output = node.as<Type>();
+                } catch (...) {
+                    error(BadTypeConversion, name, node);
+                }
+            } else {
+                error(NotSequence, name, node);
             }
         };
     }
@@ -126,9 +192,15 @@ namespace Config {
      */
     template <typename Type>
     Def sequence (Type& output) {
-        return [&output](const YAML::Node& input) mutable {
+        return [&output](ErrorFn error, const YAML::Node& input) mutable {
             if (input.IsSequence()) {
-                output = input.as<Type>();
+                try {
+                    output = input.as<Type>();
+                } catch (...) {
+                    error(BadTypeConversion, "[...]", input);
+                }
+            } else {
+                error(NotSequence, "[...]", input);
             }
         };
     }
@@ -161,14 +233,20 @@ namespace Config {
      */
     template <typename Type, typename... Children>
     Def sequence (const std::string& name, Type& temp, std::vector<Type>& output, Children... children) {
-        auto parse = make_parser(children...);
-        return [name, parse, &temp, &output](const YAML::Node& input) mutable {
+        auto parse = detail::make_parser(children...);
+        return [name, parse, &temp, &output](ErrorFn error, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsSequence()) {
                 for (auto child : node) {
-                    parse(child);
-                    output.push_back(temp);
+                    try {
+                        parse(error, child);
+                        output.push_back(temp);
+                    } catch (...) {
+                        error(BadParse, name, child);
+                    }
                 }
+            } else {
+                error(NotSequence, name, node);
             }
         };
     }
@@ -190,11 +268,17 @@ namespace Config {
      */
     template <typename... Children>
     Def map (const std::string& name, Children... children) {
-        auto parse = make_parser(children...);
-        return [name, parse](const YAML::Node& input) mutable {
+        auto parse = detail::make_parser(children...);
+        return [name, parse](ErrorFn error, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsMap()) {
-                parse(node);
+                try {
+                    parse(error, node);
+                } catch (...) {
+                    error(AttributeMissing, name, node);
+                }
+            } else {
+                error(NotMap, name, node);
             }
         };
     }
@@ -209,6 +293,7 @@ namespace Config {
      * auto parser = Config::make_parser(
      * 		[](YAML::Node node){
      * 			std::cout << node.IsSequence()
+     * 		}
      * 	);
      * 	parser(...)
      */

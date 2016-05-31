@@ -6,6 +6,9 @@
 #include <lua.hpp>
 
 #include "util/telemetry.h"
+#include "util/config.h"
+
+#include <vector>
 
 struct Test {
     int foo;
@@ -28,6 +31,7 @@ struct Settings {
     std::vector<std::vector<int>> test_9;
 };
 
+
 int main(int argc, char *argv[])
 {
     auto settings = Settings{};
@@ -36,9 +40,12 @@ int main(int argc, char *argv[])
         std::vector<int> temp2;
         using namespace Config;
         auto parser = make_parser(
+            ErrorFn([](const Error errnum, const std::string& name, const YAML::Node& node) {
+                std::cerr << "ERROR PARSING " << name << "\n";
+            }),
             scalar("test_1", settings.test_1),
             scalar("test_2", settings.test_2),
-            [](const YAML::Node& node){
+            [](ErrorFn error, const YAML::Node& node){
                 std::cout << "Extracting raw test_2: " << node["test_2"].as<int>() << "\n";
             },
             scalar("test_3", settings.test_3),
@@ -90,15 +97,6 @@ int main(int argc, char *argv[])
         std::cout << "\n";
     }
 
-    moodycamel::ConcurrentQueue<int> queue;
-    queue.enqueue(8);
-
-    int item;
-    if (queue.try_dequeue(item)) {
-        std::cout << item << "\n";
-    } else {
-        std::cout << "No items in queue\n";
-    }
     return 0;
 }
 
