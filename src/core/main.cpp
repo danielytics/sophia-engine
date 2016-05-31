@@ -40,9 +40,9 @@ int main(int argc, char *argv[])
         std::vector<int> temp2;
         using namespace Config;
         auto parser = make_parser(
-            ErrorFn([](const Error errnum, const std::string& name, const YAML::Node& node) {
-                std::cerr << "ERROR PARSING " << name << "\n";
-            }),
+//            ErrorFn([](const Error errnum, const std::string& name, const YAML::Node& node) {
+//                std::cerr << "ERROR PARSING " << name << "\n";
+//            }),
             scalar("test_1", settings.test_1),
             scalar("test_2", settings.test_2),
             [](ErrorFn error, const YAML::Node& node){

@@ -15,28 +15,23 @@ namespace Config {
         BadTypeConversion,
         AttributeMissing
     };
-    const std::map<Error, std::string> error_names{
-        {NotScalar, "Not Scalar"},
-        {NotSequence, "Not A Sequence"},
-        {NotMap, "Not A Map"},
-        {BadParse, "Bad Parse"},
-        {BadTypeConversion, "Bad Type Conversion"},
-        {AttributeMissing, "Attribute Missing"}
-    };
+    extern const std::map<Error, std::string> error_names;
 
     typedef std::function<void(const Error, const std::string&, const YAML::Node&)> ErrorFn;
     typedef const std::function<void(ErrorFn, const YAML::Node&)> Def;
     typedef std::vector<Def> Defs;
 
     namespace detail {
+        void default_error_handler (const Error err, const std::string& name, const YAML::Node& node);
+
         template <typename... Args>
-        void def (Defs& definitions, Def& definition, Args... defs) {
+        inline void def (Defs& definitions, Def& definition, Args... defs) {
             def(definitions, definition);
             def(definitions, defs...);
         }
 
         template <>
-        void def (Defs& definitions, Def& definition) {
+        inline void def (Defs& definitions, Def& definition) {
             definitions.push_back(definition);
         }
 
@@ -54,11 +49,7 @@ namespace Config {
         template <typename... Definitions>
         struct Parser {
             static inline std::function<void(const YAML::Node&)> make (Definitions... defs) {
-                auto error_cb = [](const Error err, const std::string& name, const YAML::Node& node) {
-                    auto error = error_names.at(err);
-                    std::cerr << "Parse error [" << error << "] on attribute: " << name << "\n" << node << "\n----------\n";
-                };
-                return Parser<ErrorFn, Definitions...>::make(error_cb, defs...);
+                return Parser<ErrorFn, Definitions...>::make(default_error_handler, defs...);
             }
         };
 

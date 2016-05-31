@@ -47,7 +47,8 @@ unix:!macx {
 DISTFILES +=
 
 SOURCES += src/core/main.cpp \
-    src/util/telemetry.cpp
+    src/util/telemetry.cpp \
+    src/util/config.cpp
 
 HEADERS += \
     include/util/telemetry.h \
