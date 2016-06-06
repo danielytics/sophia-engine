@@ -51,9 +51,11 @@ DISTFILES +=
 SOURCES += src/core/main.cpp \
     src/util/telemetry.cpp \
     src/util/config.cpp \
-    src/util/logging.cpp
+    src/util/logging.cpp \
+    src/window/window.cpp
 
 HEADERS += \
     include/util/telemetry.h \
     include/util/config.h \
-    include/util/logging.h
+    include/util/logging.h \
+    include/window/window.h
