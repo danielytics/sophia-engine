@@ -6,9 +6,11 @@ CONFIG -= qt
 INCLUDEPATH += include \
                depends/moodycamel/include \
                depends/yaml-cpp/include \
-               depends/glm-0.9.7.4/include
+               depends/glm-0.9.7.4/include \
+               depends/spdlog/include
 
-QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
+QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
+QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
 #QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
 
 # Platform-specific configuration
@@ -48,8 +50,10 @@ DISTFILES +=
 
 SOURCES += src/core/main.cpp \
     src/util/telemetry.cpp \
-    src/util/config.cpp
+    src/util/config.cpp \
+    src/util/logging.cpp
 
 HEADERS += \
     include/util/telemetry.h \
-    include/util/config.h
+    include/util/config.h \
+    include/util/logging.h

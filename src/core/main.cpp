@@ -7,24 +7,18 @@
 
 #include "util/telemetry.h"
 #include "util/config.h"
-
-#include <vector>
-#include <thread>
-
-#include <string>
-#include <iostream>
-#include <atomic>
-#include <mutex>
+#include "util/logging.h"
 
 #include <chrono>
 typedef std::chrono::high_resolution_clock Clock;
 typedef double Time_t;
 typedef std::chrono::duration<Time_t> Time;
 
-
-
 int main(int argc, char *argv[])
 {
+    Logging::init();
+    info("Testing the logger: {}", 123);
+
     Telemetry::Counter foo("foo");
     foo.inc();
     std::cout << foo.get() << "\n";
@@ -63,9 +57,10 @@ int main(int argc, char *argv[])
         current_time = Clock::now();
         frame_time = std::chrono::duration_cast<Time>(current_time - previous_time).count();
         frames.inc();
-        std::cout << frames.get() << " " << frame_time << "\n";
+        debug("Frame {} duration {:1.6f}", frames.get(), frame_time);
     }
 
+    Logging::term();
     return 0;
 }
 
