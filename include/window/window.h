@@ -7,6 +7,8 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
+#include "util/config.h"
+
 #include <string>
 
 class Window
@@ -15,8 +17,10 @@ public:
     Window (const std::string& tile);
     ~Window();
 
-    void open ();
+    void open (const YAML::Node&);
     void run ();
+
+
 
     GLuint u_current_time;
 

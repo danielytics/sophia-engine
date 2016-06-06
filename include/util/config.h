@@ -131,6 +131,58 @@ namespace Config {
         };
     }
 
+    template <typename... Definitions>
+    inline Def one_of (Definitions... defs) {
+        Defs def_fns = Defs{};
+        detail::def(def_fns, defs...);
+        return [def_fns](ErrorFn error_cb, const YAML::Node& node) {
+            bool success;
+            // Override the error callback to detect successful parses
+            auto error_fn = [&success, error_cb](const Error err, const std::string& name, const YAML::Node& node) {
+                if (err != Error::NotScalar && err != Error::NotSequence && err != Error::NotMap && err != Error::BadTypeConversion) {
+                    // If the error is something other than not scalar, sequence, map or bad type conversion, then we let the error callback handle this.
+                    error_cb(err, name, node);
+                } else {
+                    // But if the error was not scalar, sequence or map, or was a bad type conversion, then we 'fail' to the next definition
+                    success = false;
+                }
+            };
+            // Search all definitions for one that succeeds
+            for (auto fn : def_fns) {
+                // Assume the parse will succeed
+                success = true;
+                // Attempt to parse the value
+                fn(error_fn, node);
+                // If success, then stop searching
+                if (success) {
+                    break;
+                }
+            }
+        };
+    }
+
+    template <typename MapT, typename ValT>
+    inline Def option (const std::string& name, MapT options, ValT& output) {
+        return [name, options, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
+            YAML::Node node = input[name];
+            if (node.IsScalar()) {
+                try {
+                    auto key = node.as<typename MapT::key_type>();
+                    auto it = options.find(key);
+                    if (it != options.end()) {
+                        output = it->second;
+                    } else {
+                        error_cb(InvalidValue, name, node);
+                    }
+                } catch (...) {
+                    error_cb(BadTypeConversion, name, node);
+                }
+            } else {
+                error_cb(NotScalar, name, node);
+            }
+        };
+    }
+
     /**
      * scalar (attribute_name, output_reference)
      *

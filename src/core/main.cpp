@@ -17,12 +17,18 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef double Time_t;
 typedef std::chrono::duration<Time_t> Time;
 
+
 int main(int argc, char *argv[])
 {
+    YAML::Node config = YAML::LoadFile("config.yml");
     Logging::init();
+
     {
         Window window("Bento");
-        window.open();
+        window.open(config);
+
+        // Destroy the YAML configuration data
+        config.reset();
 
         window.run();
     }

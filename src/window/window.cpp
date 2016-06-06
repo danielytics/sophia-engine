@@ -37,87 +37,55 @@ Window::~Window ()
     }
 }
 
-void Window::open ()
+void Window::open (const YAML::Node& config_node)
 {
     // Load ystem configuration
-    struct {
+    struct Resolution {
         int width;
         int height;
+        inline void operator= (const std::vector<int>& vec) {
+            width = vec[0];
+            height = vec[1];
+        }
+    };
+    struct {
+        Resolution resolution;
         int fsaa;
         bool vsync;
         bool fullscreen;
     } config;
     {
+        std::vector<int> res;
          using namespace Config;
          auto parser = make_parser(
             map("graphics",
                 scalar("fullscreen", config.fullscreen),
                 scalar("vsync", config.vsync),
-                fn("resolution",
-                    [&config](const YAML::Node& node) {
-                        if (node.IsScalar()) {
-                            try {
-                                auto res = node.as<std::string>();
-                                if (res == "720p") {
-                                    config.width = 1280;
-                                    config.height = 720;
-                                } else if (res == "1080p") {
-                                    config.width = 1920;
-                                    config.height = 1080;
-                                } else {
-                                    return InvalidValue;
-                                }
-                            } catch (...) {
-                                return BadTypeConversion;
-                            }
-                        } else if (node.IsSequence()) {
-                            try {
-                                auto res = node.as<std::vector<unsigned>>();
-                                if (res.size() == 2) {
-                                    config.width = res[0];
-                                    config.height = res[1];
-                                } else {
-                                    return InvalidValue;
-                                }
-                            } catch (...) {
-                                return BadTypeConversion;
-                            }
-                        } else {
-                            return BadParse;
-                        }
-                        return Success;
-                    }
-                ),
-                fn("fsaa",
-                    [&config](const YAML::Node& node) {
-                        if (node.IsScalar()) {
-                            try {
-                                auto fsaa = node.as<std::string>();
-                                auto values = std::map<std::string, int>{
-                                    {"2x", 2},
-                                    {"4x", 4},
-                                    {"8x", 8},
-                                    {"16x", 16},
-                                    {"Off", 0}
-                                };
-                                auto it = values.find(fsaa);
-                                if (it != values.end()) {
-                                    config.fsaa = it->second;
-                                    return Success;
-                                }
-                                return InvalidValue;
-                            } catch (...) {
-                                return BadTypeConversion;
-                            }
-                        } else {
-                            return NotScalar;
-                        }
-                    }
-                )
+                one_of(
+                    option("resolution",
+                        std::map<std::string, Resolution>{
+                            {"720p", Resolution{1280, 720}},
+                            {"1080p", Resolution{1920, 1080}},
+                        }, config.resolution),
+                    sequence("resolution", res)
+                    ),
+                option("fsaa",
+                    std::map<std::string, int>{
+                        {"2x", 2},
+                        {"4x", 4},
+                        {"8x", 8},
+                        {"16x", 16},
+                        {"32x", 32},
+                        {"Off", 0},
+                    }, config.fsaa)
             )
         );
-        parser(YAML::LoadFile("config.yml"));
+        parser(config_node);
+        if (res.size()) {
+            config.resolution = res;
+        }
     }
+    info("Loaded graphics configuration: fsaa={} vsync={} fullscreen={} width={} height={}", config.fsaa, config.vsync, config.fullscreen, config.resolution.width, config.resolution.height);
 
     // Set the OpenGL attributes for our context
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -133,8 +101,8 @@ void Window::open ()
                 title.c_str(),
                 SDL_WINDOWPOS_CENTERED,
                 SDL_WINDOWPOS_CENTERED,
-                config.width,
-                config.height,
+                config.resolution.width,
+                config.resolution.height,
                 SDL_WINDOW_OPENGL | config.fullscreen);
     // Create OpenGL rendering context
     context = SDL_GL_CreateContext(window);
@@ -162,7 +130,7 @@ void Window::run ()
     auto start_time = Clock::now();
     auto previous_time = start_time;
     auto current_time = start_time;
-    Telemetry::Counter frames("frames");
+    auto frames = Telemetry::Counter{"frames"};
 
     // Run the main processing loop
     do {
@@ -188,7 +156,7 @@ void Window::run ()
 
         // Render frame
         glUniform1f(u_current_time, std::chrono::duration_cast<Time>(current_time.time_since_epoch()).count());
-        glClearColor(0.5, 0.5, 0.5, 1.0);
+        glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
 
 
