@@ -52,10 +52,12 @@ SOURCES += src/core/main.cpp \
     src/util/telemetry.cpp \
     src/util/config.cpp \
     src/util/logging.cpp \
-    src/window/window.cpp
+    src/window/window.cpp \
+    src/graphics/shader.cpp
 
 HEADERS += \
     include/util/telemetry.h \
     include/util/config.h \
     include/util/logging.h \
-    include/window/window.h
+    include/window/window.h \
+    include/graphics/shader.h

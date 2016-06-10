@@ -7,6 +7,8 @@
 #include <GL/glew.h>
 #include <SDL2/SDL.h>
 
+#include <glm/glm.hpp>
+
 #include "util/config.h"
 
 #include <string>
@@ -28,6 +30,7 @@ private:
     bool ready;
     SDL_GLContext context;
     SDL_Window* window;
+    glm::mat4 projection;
     const std::string title;
 };
 
