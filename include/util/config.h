@@ -8,12 +8,22 @@
 
 namespace Config {
     enum Error {
-        NotScalar = 1,
+        // Attribute parsed successfully
+        Success = 0,
+        // Attribute was expected to be a scalar, but wasn't
+        NotScalar,
+        // Attribute was expected to be a sequence, but wasn't
         NotSequence,
+        // Attribute was expected to be a map, but wasn't
         NotMap,
-        BadParse,
+        // Attribute could not be converted to the expected data type
         BadTypeConversion,
-        AttributeMissing
+        // Attribute was not found
+        AttributeMissing,
+        // Attribute was found with correct type, but has an invalid value
+        InvalidValue,
+        // Parsing failed for a reason other than the above
+        BadParse
     };
     extern const std::map<Error, std::string> error_names;
 
@@ -93,6 +103,86 @@ namespace Config {
         return detail::Parser<Args...>::make(args...);
     }
 
+
+    /**
+     * fn (attribute_name, callback)
+     *
+     * Pass the node of the named attribute to a callback for custom parsing.
+     *
+     * Example:
+     *  int val;
+     * 	auto parser = Config::make_parser(
+     *  	Config::fn("foo", [&val](const YAML::Node& node) {
+     * 			val = node.as<int>();
+     * 			return Config::Error::Success;
+     * 		});
+     */
+    inline Def fn (const std::string& name, std::function<Error(const YAML::Node&)> func) {
+        return [name, func](ErrorFn error_cb, const YAML::Node& input) mutable {
+            YAML::Node node = input[name];
+            if (node) {
+                auto err = func(node);
+                if (err != Success) {
+                    error_cb(err, name, node);
+                }
+            } else {
+                error_cb(AttributeMissing, name, node);
+            }
+        };
+    }
+
+    template <typename... Definitions>
+    inline Def one_of (Definitions... defs) {
+        Defs def_fns = Defs{};
+        detail::def(def_fns, defs...);
+        return [def_fns](ErrorFn error_cb, const YAML::Node& node) {
+            bool success;
+            // Override the error callback to detect successful parses
+            auto error_fn = [&success, error_cb](const Error err, const std::string& name, const YAML::Node& node) {
+                if (err != Error::NotScalar && err != Error::NotSequence && err != Error::NotMap && err != Error::BadTypeConversion) {
+                    // If the error is something other than not scalar, sequence, map or bad type conversion, then we let the error callback handle this.
+                    error_cb(err, name, node);
+                } else {
+                    // But if the error was not scalar, sequence or map, or was a bad type conversion, then we 'fail' to the next definition
+                    success = false;
+                }
+            };
+            // Search all definitions for one that succeeds
+            for (auto fn : def_fns) {
+                // Assume the parse will succeed
+                success = true;
+                // Attempt to parse the value
+                fn(error_fn, node);
+                // If success, then stop searching
+                if (success) {
+                    break;
+                }
+            }
+        };
+    }
+
+    template <typename MapT, typename ValT>
+    inline Def option (const std::string& name, MapT options, ValT& output) {
+        return [name, options, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
+            YAML::Node node = input[name];
+            if (node.IsScalar()) {
+                try {
+                    auto key = node.as<typename MapT::key_type>();
+                    auto it = options.find(key);
+                    if (it != options.end()) {
+                        output = it->second;
+                    } else {
+                        error_cb(InvalidValue, name, node);
+                    }
+                } catch (...) {
+                    error_cb(BadTypeConversion, name, node);
+                }
+            } else {
+                error_cb(NotScalar, name, node);
+            }
+        };
+    }
+
     /**
      * scalar (attribute_name, output_reference)
      *
@@ -111,16 +201,16 @@ namespace Config {
      */
     template <typename Type>
     Def scalar (const std::string& name, Type& output) {
-        return [name, &output](ErrorFn error, const YAML::Node& input) mutable {
+        return [name, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsScalar()) {
                 try {
                     output = node.as<Type>();
                 } catch (...) {
-                    error(BadTypeConversion, name, node);
+                    error_cb(BadTypeConversion, name, node);
                 }
             } else {
-                error(NotScalar, name, node);
+                error_cb(NotScalar, name, node);
             }
         };
     }
@@ -143,16 +233,16 @@ namespace Config {
      */
     template <typename Type>
     Def sequence (const std::string& name, Type& output) {
-        return [name, &output](ErrorFn error, const YAML::Node& input) mutable {
+        return [name, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsSequence()) {
                 try {
                     output = node.as<Type>();
                 } catch (...) {
-                    error(BadTypeConversion, name, node);
+                    error_cb(BadTypeConversion, name, node);
                 }
             } else {
-                error(NotSequence, name, node);
+                error_cb(NotSequence, name, node);
             }
         };
     }
@@ -183,15 +273,15 @@ namespace Config {
      */
     template <typename Type>
     Def sequence (Type& output) {
-        return [&output](ErrorFn error, const YAML::Node& input) mutable {
+        return [&output](ErrorFn error_cb, const YAML::Node& input) mutable {
             if (input.IsSequence()) {
                 try {
                     output = input.as<Type>();
                 } catch (...) {
-                    error(BadTypeConversion, "[...]", input);
+                    error_cb(BadTypeConversion, "[...]", input);
                 }
             } else {
-                error(NotSequence, "[...]", input);
+                error_cb(NotSequence, "[...]", input);
             }
         };
     }
@@ -225,19 +315,19 @@ namespace Config {
     template <typename Type, typename... Children>
     Def sequence (const std::string& name, Type& temp, std::vector<Type>& output, Children... children) {
         auto parse = detail::make_parser(children...);
-        return [name, parse, &temp, &output](ErrorFn error, const YAML::Node& input) mutable {
+        return [name, parse, &temp, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsSequence()) {
                 for (auto child : node) {
                     try {
-                        parse(error, child);
+                        parse(error_cb, child);
                         output.push_back(temp);
                     } catch (...) {
-                        error(BadParse, name, child);
+                        error_cb(BadParse, name, child);
                     }
                 }
             } else {
-                error(NotSequence, name, node);
+                error_cb(NotSequence, name, node);
             }
         };
     }
@@ -260,16 +350,16 @@ namespace Config {
     template <typename... Children>
     Def map (const std::string& name, Children... children) {
         auto parse = detail::make_parser(children...);
-        return [name, parse](ErrorFn error, const YAML::Node& input) mutable {
+        return [name, parse](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsMap()) {
                 try {
-                    parse(error, node);
+                    parse(error_cb, node);
                 } catch (...) {
-                    error(AttributeMissing, name, node);
+                    error_cb(AttributeMissing, name, node);
                 }
             } else {
-                error(NotMap, name, node);
+                error_cb(NotMap, name, node);
             }
         };
     }
