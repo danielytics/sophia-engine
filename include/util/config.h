@@ -137,13 +137,13 @@ namespace Config {
         detail::def(def_fns, defs...);
         return [def_fns](ErrorFn error_cb, const YAML::Node& node) {
             bool success;
-            // Override the error callback to detect successful parses
+            // Override the error callback to detect unsuccessful parses
             auto error_fn = [&success, error_cb](const Error err, const std::string& name, const YAML::Node& node) {
                 if (err != Error::NotScalar && err != Error::NotSequence && err != Error::NotMap && err != Error::BadTypeConversion) {
                     // If the error is something other than not scalar, sequence, map or bad type conversion, then we let the error callback handle this.
                     error_cb(err, name, node);
                 } else {
-                    // But if the error was not scalar, sequence or map, or was a bad type conversion, then we 'fail' to the next definition
+                    // But if the error was "not scalar, sequence or map", or was a bad type conversion, then we 'fail' to the next definition
                     success = false;
                 }
             };

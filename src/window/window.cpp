@@ -4,6 +4,9 @@
 #include "util/telemetry.h"
 #include "util/config.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "util/stb_image.h"
+
 #include "graphics/shader.h"
 
 #include <glm/glm.hpp>
@@ -23,10 +26,12 @@ struct MeshData {
     std::vector<glm::vec4> colors;
     std::vector<glm::vec3> normals;
     std::vector<GLushort> indices;
+    std::vector<glm::vec2> texcoords;
     enum { COMPONENTS_PER_VERTEX = 2,
            COMPONENTS_PER_COLOR = 4,
            COMPONENTS_PER_NORMAL = 3,
            COMPONENTS_PER_INDEX = 1,
+           COMPONENTS_PER_UV = 2,
     };
 };
 
@@ -39,8 +44,8 @@ public:
 
 private:
     // Create variables for storing the ID of our VAO and VBO
-    GLuint vao, vbo[4];
-    enum {VBO=0, CBO, NBO, IBO, VBO_COUNT};
+    enum {VBO=0, CBO, UV, NBO, IBO, VBO_COUNT};
+    GLuint vao, vbo[VBO_COUNT];
 
     int vertices;
     int indices;
@@ -50,6 +55,74 @@ private:
 Mesh::Mesh ()
 {
 
+}
+
+template <typename T>
+void loadBuffer (GLenum bufferType, GLuint componentsPerVertex, GLuint attribId, GLuint buffer, const std::vector<T>& data)
+{
+    glBindBuffer(bufferType, buffer);
+    // Copy the vertex data from diamond to our buffer
+    auto vertexData = reinterpret_cast<const float*>(data.data());
+    glBufferData(GL_ARRAY_BUFFER, data.size() * componentsPerVertex * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
+    // Specify that our coordinate data is going into attribute index 0, and contains three floats per vertex
+    glVertexAttribPointer(attribId, componentsPerVertex, GL_FLOAT, GL_FALSE, 0, 0);
+}
+
+GLuint loadTexture (const std::string& filename)
+{
+    GLuint texture = 0;
+    int width, height, comp;
+    unsigned char* image = stbi_load(filename.c_str(), &width, &height, &comp, STBI_rgb_alpha);
+    if (image) {
+        info("Loading image '{}', width={} height={} components={}", filename, width, height, comp);
+        glGenTextures(1, &texture);
+        glBindTexture(GL_TEXTURE_2D, texture);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
+
+        stbi_image_free(image);
+    } else {
+        error("Could not load texture: {}", filename);
+    }
+    return texture;
+}
+
+GLuint loadTextureArray (const std::vector<std::string>& filenames)
+{
+    GLuint texture = 0;
+    int width, height;
+    int components;
+    // Load the image files
+    auto images = std::vector<unsigned char*>{};
+    for (auto filename : filenames) {
+        unsigned char* image = stbi_load(filename.c_str(), &width, &height, &components, STBI_rgb_alpha);
+        info("Loading image '{}', width={} height={} components={}", filename, width, height, components);
+        images.push_back(image);
+    }
+
+    // Create the texture array
+    glGenTextures(1, &texture);
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA,  width, height, images.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+
+    // Load texture data into texture array
+    for (unsigned index = 0; index < images.size(); ++index) {
+        auto image = images[index];
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        stbi_image_free(image);
+    }
+    info("Loaded {} images into texture array", images.size());
+
+    //Always set reasonable texture parameters
+    glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
+
+    return texture;
 }
 
 void Mesh::init (const MeshData& data)
@@ -68,31 +141,19 @@ void Mesh::init (const MeshData& data)
 
     // Positions
     // ===================
-    // Bind our first VBO as being the active buffer and storing vertex attributes (coordinates)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[VBO]);
-
-    // Copy the vertex data from diamond to our buffer
-    auto vertexData = reinterpret_cast<const glm::vec2::value_type*>(data.vertices.data());
-    glBufferData(GL_ARRAY_BUFFER, vertices * MeshData::COMPONENTS_PER_VERTEX * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
-
-    // Specify that our coordinate data is going into attribute index 0, and contains three floats per vertex
-    glVertexAttribPointer(VBO, MeshData::COMPONENTS_PER_VERTEX, GL_FLOAT, GL_FALSE, 0, 0);
-
-    // Enable our attribute within the current VAO
+    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_VERTEX, VBO, vbo[VBO], data.vertices);
     glEnableVertexAttribArray(VBO);
 
     // Colors
     // =======================
-    glBindBuffer(GL_ARRAY_BUFFER, vbo[CBO]);
-
-    // Copy the vertex data from diamond to our buffer
-    auto colorData = reinterpret_cast<const glm::vec2::value_type*>(data.colors.data());
-    glBufferData(GL_ARRAY_BUFFER, data.colors.size() * MeshData::COMPONENTS_PER_COLOR * sizeof(GLfloat), colorData, GL_STATIC_DRAW);
-
-    // Specify that our coordinate data is going into attribute index 0, and contains three floats per vertex
-    glVertexAttribPointer(CBO, MeshData::COMPONENTS_PER_COLOR, GL_FLOAT, GL_FALSE, 0, 0);
-
+    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_COLOR, CBO, vbo[CBO], data.colors);
     glEnableVertexAttribArray(CBO);
+
+    // Texture coordinates
+    // =======================
+    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_UV, UV, vbo[UV], data.texcoords);
+    glEnableVertexAttribArray(UV);
+
 
     // Indices
     // =======================
@@ -191,6 +252,12 @@ void Window::open (const YAML::Node& config_node)
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_RED_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_GREEN_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BLUE_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_ALPHA_SIZE, 8);
+    SDL_GL_SetAttribute(SDL_GL_BUFFER_SIZE, 32);
+    SDL_GL_SetAttribute(SDL_GL_DEPTH_SIZE, 16);
     SDL_GL_SetAttribute(SDL_GL_DOUBLEBUFFER, 1);
     SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
     SDL_GL_SetAttribute(SDL_GL_MULTISAMPLEBUFFERS, config.fsaa > 0);
@@ -238,31 +305,39 @@ void Window::run ()
     using Shader_t = Shader::Shader;
     std::string vertexShader =
         "#version 330 core"
-        "   layout(location = 0) in vec4 in_Position;"
+        "   layout(location = 0) in vec2 in_Position;"
         "   layout(location = 1) in vec4 in_Color;"
+        "   layout(location = 2) in vec2 in_UV;"
         "   uniform float u_current_time;"
         "   uniform samplerBuffer u_tbo_tex;"
         "	uniform mat4 u_projection;"
         "	uniform mat4 u_view;"
+        "   out vec2 uv;"
+        "   out float image;"
         "   out vec4 color;"
         "   void main() {"
-        "     int offset = (gl_InstanceID % 6) * 5;"
+        "     int offset = (gl_InstanceID % 6) * 6;"
         "     float x  = texelFetch(u_tbo_tex, offset + 0).r;"
         "     float y  = texelFetch(u_tbo_tex, offset + 1).r;"
         "     float vx = texelFetch(u_tbo_tex, offset + 2).r;"
         "     float vy = texelFetch(u_tbo_tex, offset + 3).r;"
         "     float t  = texelFetch(u_tbo_tex, offset + 4).r;"
+        "     image = texelFetch(u_tbo_tex, offset + 5).r;"
         "     x = x + (vx * (u_current_time - t));"
         "     y = y + (vy * (u_current_time - t));"
         "     gl_Position = u_projection * u_view * vec4(in_Position.x + x, in_Position.y + y, 0.0, 1.0);"
+        "     uv = in_UV;"
         "     color = in_Color;"
         "   }";
     std::string fragmentShader =
         "   #version 330 core"
         "   in vec4 color;"
         "   out vec4 fragColor;"
+        "   in vec2 uv;"
+        "   in float image;"
+        "   uniform sampler2DArray u_texture;"
         "   void main(void) {"
-        "     fragColor = color * vec4(1.0, 1.0, 1.0, 1.0);"
+        "     fragColor = texture(u_texture, vec3(uv, image)).rgba * color;"
         "   }";
     Shader_t shader = Shader::load(vertexShader, fragmentShader);
 
@@ -281,6 +356,12 @@ void Window::run ()
             {1.0, 1.0, 1.0, 0.0},
             {1.0, 1.0, 1.0, 0.0},
         };
+        mesh.texcoords = std::vector<glm::vec2>{
+           {0.0f, 1.0f},
+           {1.0f, 1.0f},
+           {1.0f, 0.0f},
+           {0.0f, 0.0f},
+        };
         mesh.indices = std::vector<GLushort>{
             0, 1, 2,
             2, 3, 0,
@@ -290,13 +371,13 @@ void Window::run ()
 
     float start_time_f = std::chrono::duration_cast<Time>(Clock::now().time_since_epoch()).count();
     float sprite_positions[] = {
-      // x, y,   vx, vy, last_update_time
-      1.0f, 0.0f, 0, 1,  start_time_f,
-      0.0f, 0.0f, 0,-1,  start_time_f,
-      0.0f, 0.0f, 0, 0,  start_time_f,
-     -1.0f, 1.0f, 0, 0.1,  start_time_f,
-     -1.0f,-1.0f, 0,-0.1,  start_time_f,
-      1.0f,-1.0f,-1.1,0.00,  start_time_f
+      // x, y,   vx, vy, last_update_time, image
+      1.0f, 0.0f, 0, 1,  start_time_f, 0,
+      0.0f, 0.0f, 0,-1,  start_time_f, 0,
+      0.0f, 0.0f, 0, 0,  start_time_f, 1,
+     -1.0f, 1.0f, 0, 0.1,  start_time_f, 1,
+     -1.0f,-1.0f, 0,-0.1,  start_time_f, 0,
+      1.0f,-1.0f,-1.1,0.00,  start_time_f, 1,
     };
 
     GLuint tbo;
@@ -311,6 +392,12 @@ void Window::run ()
     GLuint u_current_time = glGetUniformLocation(shader.programID, "u_current_time");
     GLuint u_projection = glGetUniformLocation(shader.programID, "u_projection");
     GLuint u_view = glGetUniformLocation(shader.programID, "u_view");
+    GLuint u_texture = glGetUniformLocation(shader.programID, "u_texture");
+
+    GLuint texture = loadTextureArray(std::vector<std::string>{
+        "data/sprite.png",
+        "data/sprite2.png",
+    });
 
     // Run the main processing loop
     do {
@@ -340,11 +427,18 @@ void Window::run ()
         glClear(GL_COLOR_BUFFER_BIT);
 
         Shader::use(shader);
-        glActiveTexture(GL_TEXTURE0);
+
+        glActiveTexture(GL_TEXTURE0 + 0);
         glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
         glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
+
+        glActiveTexture(GL_TEXTURE0 + 1);
+        glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+        glUniform1i(u_texture, 1);
+
         glUniform1f(u_current_time, std::chrono::duration_cast<Time>(current_time.time_since_epoch()).count());
         glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
+
         glm::vec3 Eye = glm::vec3(0.0f, -0.0f, 0.5f);
         glm::vec3 Center = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 Up = glm::vec3(0.0, 1.0, 0.0);
@@ -380,6 +474,7 @@ void Window::run ()
         trace("Frame {} ended after {:1.6f} seconds", frames.get(), frame_time);
     } while (running);
 
+    glDeleteTextures(1, &texture);
     Shader::unload(shader);
 
     info("Average framerate: {} fps", (frames.get() / std::chrono::duration_cast<Time>(current_time - start_time).count()));
