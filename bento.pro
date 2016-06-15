@@ -61,4 +61,6 @@ HEADERS += \
     include/util/logging.h \
     include/window/window.h \
     include/graphics/shader.h \
-    include/util/stb_image.h
+    include/util/stb_image.h \
+    include/graphics/tilemap.h \
+    include/graphics/mesh.h
