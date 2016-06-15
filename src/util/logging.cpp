@@ -11,7 +11,7 @@ void Logging::init () {
     size_t q_size = 8192; //queue size must be power of 2
     spdlog::set_async_mode(q_size);
 #endif
-    spdlog::set_level(spdlog::level::trace);
+    spdlog::set_level(spdlog::level::info);
     Logging::logger = spdlog::stdout_logger_mt("console", true /*use color*/);
     spdlog::set_pattern("%l [%D %H/%M/%S:%f] %v");
 }
