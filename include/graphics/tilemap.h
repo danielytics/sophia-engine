@@ -1,25 +1,26 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-namespace TileMap {
+#include "shader.h"
+#include "mesh.h"
+#include <glm/glm.hpp>
 
-struct Tile {
-    glm::vec3 position;
-    float image;
-    glm::vec4 color;
+class TileMap {
+    using Shader_t = Shader::Shader;
+public:
+    ~TileMap ();
+
+    void init (const std::vector<std::vector<float>>& map);
+    void render (const glm::vec3& camera, const glm::mat4& projection, const glm::mat4& view);
+
+private:
+    Mesh mesh;
+    Shader_t shader;
+    GLuint u_projection;
+    GLuint u_view;
+    GLuint u_texture;
+    int width;
+    int height;
 };
-struct Map {
-    std::vector<glm::vec3> positions;
-    std::vector<float> images;
-    std::vector<glm::vec4> colors;
-};
-
-VAO&& compileMap(const Map&& map) {
-    VAO vao;
-    vao.addBuffer(map.colors);
-    vao.addBuffer(map.images);
-}
-
-}
 
 #endif // TILEMAP_H

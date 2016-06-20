@@ -53,7 +53,8 @@ SOURCES += src/core/main.cpp \
     src/util/config.cpp \
     src/util/logging.cpp \
     src/window/window.cpp \
-    src/graphics/shader.cpp
+    src/graphics/shader.cpp \
+    src/graphics/tilemap.cpp
 
 HEADERS += \
     include/util/telemetry.h \

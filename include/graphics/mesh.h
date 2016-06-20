@@ -10,6 +10,8 @@
 #define GL3_PROTOTYPES 1
 #endif
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <vector>
 
 template <typename T>
 struct VBOComponents {

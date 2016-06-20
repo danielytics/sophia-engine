@@ -8,7 +8,7 @@
 #include "util/stb_image.h"
 
 #include "graphics/shader.h"
-#include "graphics/mesh.h"
+#include "graphics/tilemap.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,85 +22,6 @@
 typedef std::chrono::high_resolution_clock Clock;
 typedef double Time_t;
 typedef std::chrono::duration<Time_t> Time;
-
-//struct MeshData {
-//    std::vector<glm::vec2> vertices;
-//    std::vector<glm::vec4> colors;
-//    std::vector<glm::vec3> normals;
-//    std::vector<GLushort> indices;
-//    std::vector<glm::vec2> texcoords;
-//    enum { COMPONENTS_PER_VERTEX = 2,
-//           COMPONENTS_PER_COLOR = 4,
-//           COMPONENTS_PER_NORMAL = 3,
-//           COMPONENTS_PER_INDEX = 1,
-//           COMPONENTS_PER_UV = 2,
-//    };
-//};
-
-//class Mesh {
-//public:
-//    Mesh ();
-
-//    void init (const MeshData& data);
-//    void draw ();
-
-//private:
-//    // Create variables for storing the ID of our VAO and VBO
-//    enum {VBO=0, CBO, UV, NBO, IBO, VBO_COUNT};
-//    GLuint vao, vbo[VBO_COUNT];
-
-//    int vertices;
-//    int indices;
-
-//};
-
-//Mesh::Mesh ()
-//{
-
-//}
-
-
-//class VAO {
-//public:
-//    VAO () {
-//        glGenVertexArrays(1, &vao);
-//        glBindVertexArray(vao);
-//    }
-
-//    template <typename T>
-//    unsigned addBuffer (const std::vector<T>& data, bool vertices=false) {
-//        GLuint id = vbos.size();
-//        GLuint vbo;
-//        glGenBuffers(1, &vbo);
-//        loadBuffer(GL_ARRAY_BUFFER, VBOComponents<T>::NumComponents, id, vbo, data);
-//        glEnableVertexAttribArray(id);
-//        if (vertices) {
-//            count = data.size();
-//        }
-//        vbos.push_back(vbo);
-//        return id;
-//    }
-
-//    void set (unsigned id, bool enabled) {
-//        if (enabled) {
-//            glEnableVertexAttribArray(id);
-//        } else {
-//            glDisableVertexAttribArray(id);
-//        }
-//    }
-
-//    void draw (unsigned int instances) {
-////        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, count, instances);
-//        glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
-//    }
-
-//private:
-//    GLuint count;
-//    GLuint vao;
-//    std::vector<GLuint> vbos;
-
-//};
-
 
 GLuint loadTexture (const std::string& filename)
 {
@@ -158,52 +79,6 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
 
     return texture;
 }
-
-//void Mesh::init (const MeshData& data)
-//{
-//    vertices = data.vertices.size();
-//    indices = data.indices.size();
-
-//    // Generate and assign two Vertex Buffer Objects to our handle
-//    glGenBuffers(VBO_COUNT, vbo);
-
-//    // Generate and assign a Vertex Array Object to our handle
-//    glGenVertexArrays(1, &vao);
-
-//    // Bind our Vertex Array Object as the current used object
-//    glBindVertexArray(vao);
-
-//    // Positions
-//    // ===================
-//    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_VERTEX, VBO, vbo[VBO], data.vertices);
-//    glEnableVertexAttribArray(VBO);
-
-//    // Colors
-//    // =======================
-//    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_COLOR, CBO, vbo[CBO], data.colors);
-//    glEnableVertexAttribArray(CBO);
-
-//    // Texture coordinates
-//    // =======================
-//    loadBuffer(GL_ARRAY_BUFFER, MeshData::COMPONENTS_PER_UV, UV, vbo[UV], data.texcoords);
-//    glEnableVertexAttribArray(UV);
-
-
-//    // Indices
-//    // =======================
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo[IBO]);
-
-//    // Copy the vertex data from diamond to our buffer
-//    auto indexData = reinterpret_cast<const GLshort*>(data.indices.data());
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, data.indices.size() * MeshData::COMPONENTS_PER_INDEX * sizeof(GLshort), indexData, GL_STATIC_DRAW);
-//}
-
-//void Mesh::draw ()
-//{
-////    glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, vertices, 4);
-//    glDrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_SHORT, 0, 6);
-//}
-
 
 
 Window::Window (const std::string& title)
@@ -370,63 +245,6 @@ void Window::run ()
         "   }";
     Shader_t shader = Shader::load(vertexShader, fragmentShader);
 
-    Shader_t tileMapShader = Shader::load(
-        // VERTEX SHADER
-        "#version 330 core"
-        "   layout(location = 0) in vec2 in_Position;"
-        "   layout(location = 1) in vec4 in_Color;"
-        "   layout(location = 2) in vec2 in_UV;"
-        "   layout(location = 3) in float in_Image;"
-        "   uniform float u_current_time;"
-        "	uniform mat4 u_projection;"
-        "	uniform mat4 u_view;"
-        "   out vec2 uv;"
-        "   out vec4 color;"
-        "   out float image;"
-        "   void main() {"
-        "     gl_Position = u_projection * u_view * vec4(in_Position, 0.0, 1.0);"
-        "     color = in_Color;"
-        "     uv = in_UV;"
-        "     image = in_Image;"
-        "   }",
-
-        // FRAGMENT SHADER
-        "   #version 330 core"
-        "   in vec4 color;"
-        "   out vec4 fragColor;"
-        "   in vec2 uv;"
-        "   in float image;"
-        "   uniform sampler2DArray u_texture;"
-        "   void main(void) {"
-        "     fragColor = texture(u_texture, vec3(uv, image)).rgba * color;"
-        "   }");
-
-    auto mesh = Mesh{};
-    {
-        auto vertices = std::vector<glm::vec2>{};
-        auto colours =  std::vector<glm::vec4>{};
-        auto texcoords = std::vector<glm::vec2>{};
-        auto images = std::vector<float>{};
-        // Generate grid
-        for (float y = 0; y < 100.0f; y += 1.0f) {
-            for (float x = 0; x < 100.0f; x += 1.0f) {
-                vertices.push_back(glm::vec2{x, y});
-                colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 0.0f});
-                texcoords.push_back(glm::vec2{1.0f - std::fmod(x, 2.0f), std::fmod(y, 2.0f)});
-                if (std::fmod(x, 10.0f) == 0 || std::fmod(y, 15.0f) == 0) {
-                    images.push_back(1);
-                } else {
-                    images.push_back(0);
-                }
-            }
-        }
-        // Upload grid data to VBO
-        mesh.addBuffer(vertices, true);
-        mesh.addBuffer(colours);
-        mesh.addBuffer(texcoords);
-        mesh.addBuffer(images);
-        mesh.addIndexBuffer();
-    }
 
     struct SpritePosition {
         float x, y;
@@ -457,25 +275,50 @@ void Window::run ()
     glGenTextures(1, &tbo_tex);
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
     GLuint u_tbo_tex = glGetUniformLocation(shader.programID, "u_tbo_tex");
-    GLuint u_current_time = glGetUniformLocation(tileMapShader.programID, "u_current_time");
-    GLuint u_projection = glGetUniformLocation(tileMapShader.programID, "u_projection");
-    GLuint u_view = glGetUniformLocation(tileMapShader.programID, "u_view");
-    GLuint u_texture = glGetUniformLocation(tileMapShader.programID, "u_texture");
+    GLuint u_current_time = glGetUniformLocation(shader.programID, "u_current_time");
 
-    GLuint texture = loadTextureArray(std::vector<std::string>{
-        "data/sprite.png",
-        "data/sprite2.png",
-    });
+    TileMap tileMap;
+    tileMap.init(std::vector<std::vector<float>>{
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0,  },
+        { 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1,  },
+        { 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1,  },
+        { 0, 1, 0, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1,  },
+        { 0, 1, 0, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 1, 1, 1, 0, 0, 1, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+     });
 
     glm::vec3 camera = glm::vec3(0.0f, 0.0f, 0.5f);
-    glm::vec3 Up = glm::vec3(0.0, 1.0, 0.0);
+    glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glActiveTexture(GL_TEXTURE0 + 0);
+    GLuint texture = loadTextureArray(std::vector<std::string>{
+        "data/images/Brown Block.png",
+        "data/images/Grass Block.png",
+
+    });
+    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+
+    glActiveTexture(GL_TEXTURE0 + 1);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
     glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
 
-    glActiveTexture(GL_TEXTURE0 + 1);
-    glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glDepthMask(0); // Disable writing to depth buffer
 
     // Run the main processing loop
     do {
@@ -510,53 +353,26 @@ void Window::run ()
                 }
             }
         }
-        float time_since_start = std::chrono::duration_cast<Time>(current_time - start_time).count();
-        glm::mat4 view = glm::rotate(glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up), glm::radians(time_since_start * 30.0f) * 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
 
-        // Render frame
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
 
 //        Shader::use(shader);
-
 //        glUniform1i(u_texture, 1);
-
 //        glUniform1f(u_current_time, time_since_start);
 //        glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
 //        glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
 
-        Shader::use(tileMapShader);
-        glUniform1i(u_texture, 1);
-        glUniform1f(u_current_time, time_since_start);
-        glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
-        auto indices = std::vector<GLushort>{};
-        GLushort xbase = (GLushort)(camera.x - 10.0f);
-        GLushort yidx = (GLushort)(camera.y - 10.0f);
-        GLushort xidx = xbase;
-        for (float x = camera.x - 10.0f; x < camera.x + 10.0f; x += 1) {
-            for (float y = camera.y - 10.0f; y < camera.y + 10.0f; y += 1) {
-                auto index = xidx + (yidx * 100);
-                indices.push_back(index);
-                indices.push_back(index + 1);
-                indices.push_back(index + 101);
-
-                indices.push_back(index + 101);
-                indices.push_back(index);
-                indices.push_back(index + 100);
-
-                ++xidx;
-            }
-            ++yidx;
-            xidx = xbase;
-        }
-        mesh.drawIndexed(indices);
         /////////////////////////////////////
+        // Calculate current time
+        float time_since_start = std::chrono::duration_cast<Time>(current_time - start_time).count();
+        // Generate the view matrix using the camera position
+//        glm::mat4 view = glm::rotate(glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up), glm::radians(time_since_start * 30.0f) * 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 view = glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up);
         // Clear screen
+        glClearColor(0.0, 0.0, 0.0, 1.0);
+        glClear(GL_COLOR_BUFFER_BIT);
         // Draw tilemap
-        // select tile render shader
-        // upload tile indices for current viewport
-        // draw tilemap vbo
+        tileMap.render(camera, projection, view);
+        // Draw sprites
         /////////////////////////////////////
 
 //        // Render each viewport in turn
