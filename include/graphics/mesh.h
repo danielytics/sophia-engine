@@ -94,11 +94,11 @@ public:
 
     inline void draw () {
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
+        glDrawArrays(GL_TRIANGLES, 0, count);
     }
     inline void draw (unsigned int instances) {
         glBindVertexArray(vao);
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, count, instances);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, count, instances);
     }
     inline void drawIndexed (const std::vector<GLushort>& indices)
     {

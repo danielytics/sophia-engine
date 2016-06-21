@@ -3,6 +3,7 @@
 #include "util/logging.h"
 
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 #include <vector>
 #include <cmath>
 #include <algorithm>
@@ -28,7 +29,7 @@ void TileMap::init (const std::vector<std::vector<float>>& map)
         "   out vec4 color;"
         "   out float image;"
         "   void main() {"
-        "     gl_Position = u_projection * u_view * vec4(in_Position, -0.5, 1.0);"
+        "     gl_Position =  u_projection * u_view * vec4(in_Position, 0.0, 1.0);"
         "     color = in_Color;"
         "     uv = in_UV;"
         "     image = in_Image;"
@@ -57,28 +58,27 @@ void TileMap::init (const std::vector<std::vector<float>>& map)
     std::size_t w = 0;
     for (auto row : map) {
         for (auto col : row) {
-            vertices.push_back(glm::vec2{x,        y + 1.2f});
-            vertices.push_back(glm::vec2{x + 1.0f, y + 1.2f});
-            vertices.push_back(glm::vec2{x + 1.0f, y       });
             vertices.push_back(glm::vec2{x,        y       });
+            vertices.push_back(glm::vec2{x + 1.0f, y       });
+            vertices.push_back(glm::vec2{x + 1.0f, y - 1.2f});
+            vertices.push_back(glm::vec2{x,        y - 1.2f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
-            texcoords.push_back(glm::vec2{0.0f, 1.0f});
-            texcoords.push_back(glm::vec2{1.0f, 1.0f});
-            texcoords.push_back(glm::vec2{1.0f, 0.0f});
             texcoords.push_back(glm::vec2{0.0f, 0.0f});
+            texcoords.push_back(glm::vec2{1.0f, 0.0f});
+            texcoords.push_back(glm::vec2{1.0f, 1.0f});
+            texcoords.push_back(glm::vec2{0.0f, 1.0f});
             images.push_back(col);
             images.push_back(col);
             images.push_back(col);
             images.push_back(col);
-            x += 0.95f;
+            x += 1.0f;
         }
-        error("index: {}", vertices.size());
         w = std::max(w, row.size());
         x = 0.0f;
-        y += 0.65f;
+        y -= 1.0f;
     }
     // Upload grid data to VBO
     mesh.addBuffer(vertices, true);
@@ -102,38 +102,55 @@ void TileMap::render (const glm::vec3& camera, const glm::mat4& projection, cons
     glUniform1i(u_texture, 0);
     glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
+
+    // Calculate views bounding rect in world space
+    auto ipv = glm::inverse(projection * view);
+    auto top_left = ipv * glm::vec4(-1.0f, 1.0f, 0.0f, 1.0f);
+    auto bottom_right = ipv * glm::vec4(1.0f, -1.0f, 0.0f, 1.0f);
+
+    info("Camera: {}, {}, {}  | bounds: {},{} {},{}", camera.x, camera.y, camera.z, top_left.x, top_left.y, bottom_right.x, bottom_right.y);
+
+    // Generate tilemap indices
     auto indices = std::vector<GLushort>{};
     int xbase = (int)(camera.x - 0.0f);
     int tile_y = (int)(camera.y - 5.0f);
     auto tile_x = xbase;
-    info("Camera: {}, {}, {}", camera.x, camera.y, camera.z);
 
     auto base_tile = (tile_y * width) + tile_x;
     auto base = base_tile * 4;
     auto index = base;
 
-    for (auto y = 0.0f; y < 15; ++y) {
-        for (auto x = 0.0f; x < 14; ++x) {
-            if (index >= 0 && index < width * height * 4 && x + camera.x >= 0.0f && x + camera.x < width) {
-                indices.push_back(index);
-                indices.push_back(index + 1);
-                indices.push_back(index + 2);
-                indices.push_back(index + 2);
-                indices.push_back(index + 3);
-                indices.push_back(index);
-            } else {
-                indices.push_back(0);
-                indices.push_back(0);
-                indices.push_back(0);
-                indices.push_back(0);
-                indices.push_back(0);
-                indices.push_back(0);
-            }
-            index += 4;
-        }
-        base += (int)width * 4;
-        index = base;
+    for (float index = 0.0f; index < 800.0f; index += 4.0f) {
+            indices.push_back(index);
+            indices.push_back(index + 1);
+            indices.push_back(index + 2);
+            indices.push_back(index + 2);
+            indices.push_back(index + 3);
+            indices.push_back(index);
     }
+
+//    for (auto y = 0.0f; y < 15; ++y) {
+//        for (auto x = 0.0f; x < 14; ++x) {
+//            if (index >= 0 && index < width * height * 4 && x + camera.x >= 0.0f && x + camera.x < width) {
+//                indices.push_back(index);
+//                indices.push_back(index + 1);
+//                indices.push_back(index + 2);
+//                indices.push_back(index + 2);
+//                indices.push_back(index + 3);
+//                indices.push_back(index);
+//            } else {
+//                indices.push_back(0);
+//                indices.push_back(0);
+//                indices.push_back(0);
+//                indices.push_back(0);
+//                indices.push_back(0);
+//                indices.push_back(0);
+//            }
+//            index += 4;
+//        }
+//        base += (int)width * 4;
+//        index = base;
+//    }
 
     mesh.drawIndexed(indices);
 }

@@ -184,7 +184,13 @@ void Window::open (const YAML::Node& config_node)
     // Create OpenGL rendering context
     context = SDL_GL_CreateContext(window);
 
-    projection = glm::perspective(60.0f, static_cast<float>(config.resolution.width) / static_cast<float>(config.resolution.height), 0.1f, 512.0f);
+    float width = static_cast<float>(config.resolution.width);
+    float height = static_cast<float>(config.resolution.height);
+//    projection = glm::perspective(60.0f, width / height, 0.1f, 100.0f);
+    float w = (width / height) * 5.0f;
+    projection = glm::ortho(-w, w, -5.0f, 5.0f, 0.0f, 10.0f);
+    viewport = glm::vec4(0, 0, width, height);
+    glViewport(0, 0, config.resolution.width, config.resolution.height);
 
     // Set vertical sync if configured
     SDL_GL_SetSwapInterval(config.vsync);
@@ -212,70 +218,88 @@ void Window::run ()
     auto frames = Telemetry::Counter{"frames"};
 
     using Shader_t = Shader::Shader;
+//    std::string vertexShader =
+//        "#version 330 core"
+//        "   layout(location = 0) in vec2 in_Position;"
+//        "   layout(location = 1) in vec4 in_Color;"
+//        "   layout(location = 2) in vec2 in_UV;"
+//        "   uniform float u_current_time;"
+//        "   uniform samplerBuffer u_tbo_tex;"
+//        "	uniform mat4 u_projection;"
+//        "	uniform mat4 u_view;"
+//        "   out vec2 uv;"
+//        "   out float image;"
+//        "   out vec4 color;"
+//        "   void main() {"
+//        "     int offset = (gl_InstanceID % 6) * 3;"
+//        "     float x  = texelFetch(u_tbo_tex, offset + 0).r;"
+//        "     float y  = texelFetch(u_tbo_tex, offset + 1).r;"
+//        "     image = texelFetch(u_tbo_tex, offset + 5).r;"
+//        "     gl_Position = u_projection * u_view * vec4(in_Position.x + x, in_Position.y + y, 0.0, 1.0);"
+//        "     color = in_Color;"
+//        "     uv = in_UV;"
+//        "   }";
+//    std::string fragmentShader =
+//        "   #version 330 core"
+//        "   in vec4 color;"
+//        "   out vec4 fragColor;"
+//        "   in vec2 uv;"
+//        "   in float image;"
+//        "   uniform sampler2DArray u_texture;"
+//        "   void main(void) {"
+//        "     fragColor = texture(u_texture, vec3(uv, image)).rgba * color;"
+//        "   }";
     std::string vertexShader =
         "#version 330 core"
-        "   layout(location = 0) in vec2 in_Position;"
-        "   layout(location = 1) in vec4 in_Color;"
-        "   layout(location = 2) in vec2 in_UV;"
-        "   uniform float u_current_time;"
-        "   uniform samplerBuffer u_tbo_tex;"
+        "   layout(location = 0) in vec3 in_Position;"
         "	uniform mat4 u_projection;"
         "	uniform mat4 u_view;"
-        "   out vec2 uv;"
-        "   out float image;"
-        "   out vec4 color;"
         "   void main() {"
-        "     int offset = (gl_InstanceID % 6) * 3;"
-        "     float x  = texelFetch(u_tbo_tex, offset + 0).r;"
-        "     float y  = texelFetch(u_tbo_tex, offset + 1).r;"
-        "     image = texelFetch(u_tbo_tex, offset + 5).r;"
-        "     gl_Position = u_projection * u_view * vec4(in_Position.x + x, in_Position.y + y, 0.0, 1.0);"
-        "     color = in_Color;"
-        "     uv = in_UV;"
+//        "     gl_Position = u_view * u_projection * vec4(in_Position, 1.0);"
+        "     gl_Position = u_projection * u_view * vec4(in_Position, 1.0);"
         "   }";
     std::string fragmentShader =
         "   #version 330 core"
-        "   in vec4 color;"
         "   out vec4 fragColor;"
-        "   in vec2 uv;"
-        "   in float image;"
-        "   uniform sampler2DArray u_texture;"
         "   void main(void) {"
-        "     fragColor = texture(u_texture, vec3(uv, image)).rgba * color;"
+        "     fragColor = vec4(1.0, 1.0, 1.0, 1.0);"
         "   }";
     Shader_t shader = Shader::load(vertexShader, fragmentShader);
+    Shader::use(shader);
+    GLuint u_projection = glGetUniformLocation(shader.programID, "u_projection");
+    GLuint u_view = glGetUniformLocation(shader.programID, "u_view");
 
 
-    struct SpritePosition {
-        float x, y;
-        float image;
-    };
-    auto sprites = std::vector<SpritePosition>{
-        { 1.0f, 0.0f, 0},
-        { 0.0f, 0.0f, 0},
-        { 0.5f, 0.5f, 1},
-        {-1.0f, 1.0f, 1},
-        {-1.0f,-1.0f, 0},
-        { 1.0f,-1.0f, 1},
-    };
+//    struct SpritePosition {
+//        float x, y;
+//        float image;
+//    };
+//    auto sprites = std::vector<SpritePosition>{
+//        { 1.0f, 0.0f, 0},
+//        { 0.0f, 0.0f, 0},
+//        { 0.5f, 0.5f, 1},
+//        {-1.0f, 1.0f, 1},
+//        {-1.0f,-1.0f, 0},
+//        { 1.0f,-1.0f, 1},
+//    };
 
 
-    std::vector<glm::vec3> spriteData;
-    for (auto sprite : sprites) {
-        spriteData.push_back(glm::vec3{sprite.x, sprite.y, sprite.image});
-    }
+//    std::vector<glm::vec3> spriteData;
+//    for (auto sprite : sprites) {
+//        spriteData.push_back(glm::vec3{sprite.x, sprite.y, sprite.image});
+//    }
 
 
-    GLuint tbo;
-    GLuint tbo_tex;
+//    GLuint tbo;
+//    GLuint tbo_tex;
 
-    glGenBuffers(1, &tbo);
-    glBindBuffer(GL_TEXTURE_BUFFER, tbo);
-    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteData.size(), reinterpret_cast<float*>(spriteData.data()), GL_STREAM_DRAW);
-    glGenTextures(1, &tbo_tex);
-    glBindBuffer(GL_TEXTURE_BUFFER, 0);
-    GLuint u_tbo_tex = glGetUniformLocation(shader.programID, "u_tbo_tex");
-    GLuint u_current_time = glGetUniformLocation(shader.programID, "u_current_time");
+//    glGenBuffers(1, &tbo);
+//    glBindBuffer(GL_TEXTURE_BUFFER, tbo);
+//    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteData.size(), reinterpret_cast<float*>(spriteData.data()), GL_STREAM_DRAW);
+//    glGenTextures(1, &tbo_tex);
+//    glBindBuffer(GL_TEXTURE_BUFFER, 0);
+//    GLuint u_tbo_tex = glGetUniformLocation(shader.programID, "u_tbo_tex");
+//    GLuint u_current_time = glGetUniformLocation(shader.programID, "u_current_time");
 
     TileMap tileMap;
     tileMap.init(std::vector<std::vector<float>>{
@@ -301,7 +325,7 @@ void Window::run ()
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
      });
 
-    glm::vec3 camera = glm::vec3(0.0f, 0.0f, 0.5f);
+    glm::vec3 camera = glm::vec3(0.0f, 0.0f, 1.0f);
     glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glActiveTexture(GL_TEXTURE0 + 0);
@@ -312,13 +336,30 @@ void Window::run ()
     });
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
-    glActiveTexture(GL_TEXTURE0 + 1);
-    glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
-    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
+//    glActiveTexture(GL_TEXTURE0 + 1);
+//    glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
+//    glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
 
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glDepthMask(0); // Disable writing to depth buffer
+
+    Mesh mesh;
+    mesh.addBuffer(std::vector<glm::vec3>{
+                       {-0.5f, 0.5f, 0.0f},
+                       { 0.5f, 0.5f, 0.0f},
+                       { 0.5f,-0.5f, 0.0f},
+                       { 0.5f,-0.5f, 0.0f},
+                       {-0.5f,-0.5f, 0.0f},
+                       {-0.5f, 0.5f, 0.0f},
+
+                       {1.0f + -0.5f, 1.0f + 0.5f, 0.0f},
+                       {1.0f +  0.5f, 1.0f + 0.5f, 0.0f},
+                       {1.0f +  0.5f, 1.0f + -0.5f, 0.0f},
+                       {1.0f +  0.5f, 1.0f + -0.5f, 0.0f},
+                       {1.0f + -0.5f, 1.0f + -0.5f, 0.0f},
+                       {1.0f + -0.5f, 1.0f + 0.5f, 0.0f},
+                   }, true);
 
     // Run the main processing loop
     do {
@@ -366,7 +407,16 @@ void Window::run ()
         float time_since_start = std::chrono::duration_cast<Time>(current_time - start_time).count();
         // Generate the view matrix using the camera position
 //        glm::mat4 view = glm::rotate(glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up), glm::radians(time_since_start * 30.0f) * 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 view = glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up);
+        glm::mat4 view = glm::lookAt(camera, glm::vec3{camera.x, camera.y, camera.z - 1.0f}, Up);
+
+        int x, y;
+        SDL_GetMouseState(&x, &y);
+        glm::vec3 mouse = glm::unProject(glm::vec3(x, viewport.w - y, 0.0f), view, projection, viewport);
+
+        info("Camera: {}, {}, {}", camera.x, camera.y, camera.z);
+        info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
+        info();
+
         // Clear screen
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
@@ -374,6 +424,11 @@ void Window::run ()
         tileMap.render(camera, projection, view);
         // Draw sprites
         /////////////////////////////////////
+
+        Shader::use(shader);
+        glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
+        glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
+        mesh.draw();
 
 //        // Render each viewport in turn
 //        for (auto viewport : viewports) {
