@@ -31,6 +31,7 @@ private:
     SDL_GLContext context;
     SDL_Window* window;
     glm::mat4 projection;
+    glm::vec4 viewport;
     const std::string title;
 };
 

@@ -10,6 +10,8 @@
 #define GL3_PROTOTYPES 1
 #endif
 #include <GL/glew.h>
+#include <glm/glm.hpp>
+#include <vector>
 
 template <typename T>
 struct VBOComponents {
@@ -36,17 +38,6 @@ struct VBOComponents<glm::vec4> {
    enum {NumComponents = 4};
 };
 
-template <typename T>
-void loadBuffer (GLenum bufferType, GLuint componentsPerVertex, GLuint attribId, GLuint buffer, const std::vector<T>& data)
-{
-    glBindBuffer(bufferType, buffer);
-    // Copy the vertex data from diamond to our buffer
-    auto vertexData = reinterpret_cast<const float*>(data.data());
-    glBufferData(GL_ARRAY_BUFFER, data.size() * componentsPerVertex * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
-    // Specify that our coordinate data is going into attribute index 0, and contains three floats per vertex
-    glVertexAttribPointer(attribId, componentsPerVertex, GL_FLOAT, GL_FALSE, 0, 0);
-}
-
 class Mesh
 {
 public:
@@ -64,14 +55,29 @@ public:
     unsigned addBuffer (const std::vector<T>& data, bool vertices=false) {
         GLuint id = vbos.size();
         GLuint vbo;
+        // Create and bind the new buffer
         glGenBuffers(1, &vbo);
-        loadBuffer(GL_ARRAY_BUFFER, VBOComponents<T>::NumComponents, id, vbo, data);
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        // Copy the vertex data to the buffer
+        auto vertexData = reinterpret_cast<const float*>(data.data());
+        glBufferData(GL_ARRAY_BUFFER, data.size() * VBOComponents<T>::NumComponents * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
+        // Specify that the buffer data is going into attribute index 0, and contains N floats per vertex
+        glVertexAttribPointer(id, VBOComponents<T>::NumComponents, GL_FLOAT, GL_FALSE, 0, 0);
         glEnableVertexAttribArray(id);
         if (vertices) {
             count = data.size();
         }
         vbos.push_back(vbo);
         return id;
+    }
+
+    template <typename T>
+    void setBuffer (unsigned id, const std::vector<T>& data) {
+        GLuint vbo = vbos[id];
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+        // Copy the vertex data to the buffer
+        auto vertexData = reinterpret_cast<const float*>(data.data());
+        glBufferData(GL_ARRAY_BUFFER, data.size() * VBOComponents<T>::NumComponents * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
     }
 
     void set (unsigned id, bool enabled) {
@@ -92,11 +98,11 @@ public:
 
     inline void draw () {
         glBindVertexArray(vao);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, count);
+        glDrawArrays(GL_TRIANGLES, 0, count);
     }
     inline void draw (unsigned int instances) {
         glBindVertexArray(vao);
-        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, count, instances);
+        glDrawArraysInstanced(GL_TRIANGLES, 0, count, instances);
     }
     inline void drawIndexed (const std::vector<GLushort>& indices)
     {
