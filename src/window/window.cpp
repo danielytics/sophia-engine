@@ -186,9 +186,9 @@ void Window::open (const YAML::Node& config_node)
 
     float width = static_cast<float>(config.resolution.width);
     float height = static_cast<float>(config.resolution.height);
-//    projection = glm::perspective(60.0f, width / height, 0.1f, 100.0f);
-    float w = (width / height) * 5.0f;
-    projection = glm::ortho(-w, w, -5.0f, 5.0f, 0.0f, 10.0f);
+    projection = glm::perspective(glm::radians(60.0f), width / height, 0.1f, 20.0f);
+//    float w = (width / height) * 5.0f;
+//    projection = glm::ortho(-w, w, -5.0f, 5.0f, 0.0f, 10.0f);
     viewport = glm::vec4(0, 0, width, height);
     glViewport(0, 0, config.resolution.width, config.resolution.height);
 
@@ -325,14 +325,13 @@ void Window::run ()
         { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
      });
 
-    glm::vec3 camera = glm::vec3(0.0f, 0.0f, 1.0f);
+    glm::vec3 camera = glm::vec3(0.0f, 0.0f, 10.0f);
     glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
     glActiveTexture(GL_TEXTURE0 + 0);
     GLuint texture = loadTextureArray(std::vector<std::string>{
-        "data/images/Brown Block.png",
-        "data/images/Grass Block.png",
-
+        "data/TEXTURES/G000M801.BMP",
+        "data/TEXTURES/S5G0I800.BMP",
     });
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
@@ -346,12 +345,12 @@ void Window::run ()
 
     Mesh mesh;
     mesh.addBuffer(std::vector<glm::vec3>{
-                       {-0.5f, 0.5f, 0.0f},
-                       { 0.5f, 0.5f, 0.0f},
-                       { 0.5f,-0.5f, 0.0f},
-                       { 0.5f,-0.5f, 0.0f},
-                       {-0.5f,-0.5f, 0.0f},
-                       {-0.5f, 0.5f, 0.0f},
+                       {-0.5f, 0.5f, 0.5f},
+                       { 0.5f, 0.5f, 0.5f},
+                       { 0.5f,-0.5f, 0.5f},
+                       { 0.5f,-0.5f, 0.5f},
+                       {-0.5f,-0.5f, 0.5f},
+                       {-0.5f, 0.5f, 0.5f},
 
                        {1.0f + -0.5f, 1.0f + 0.5f, 0.0f},
                        {1.0f +  0.5f, 1.0f + 0.5f, 0.0f},
@@ -360,6 +359,8 @@ void Window::run ()
                        {1.0f + -0.5f, 1.0f + -0.5f, 0.0f},
                        {1.0f + -0.5f, 1.0f + 0.5f, 0.0f},
                    }, true);
+
+    std::vector<Renderable*> renderables{&tileMap};
 
     // Run the main processing loop
     do {
@@ -377,22 +378,48 @@ void Window::run ()
                 case SDLK_ESCAPE:
                     running = false;
                     break;
-                case SDLK_UP:
-                    camera.y += frame_time * 5.0f;
-                    break;
-                case SDLK_DOWN:
-                    camera.y -= frame_time * 5.0f;
-                    break;
-                case SDLK_LEFT:
-                    camera.x -= frame_time * 5.0f;
-                    break;
-                case SDLK_RIGHT:
-                    camera.x += frame_time * 5.0f;
+                case SDLK_SPACE:
+                    tileMap.reset(std::vector<std::vector<float>>{
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 1, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 1, 0, 1, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                        { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  },
+                     });
                     break;
                 default:
                     break;
                 }
             }
+        }
+        const Uint8* state = SDL_GetKeyboardState(NULL);
+        auto speed = state[SDL_SCANCODE_LSHIFT] ? 3.0f : 2.0f;
+        if (state[SDL_SCANCODE_UP]){
+            camera.y += (frame_time * 5.0f) * speed;
+        }
+        if (state[SDL_SCANCODE_DOWN]) {
+            camera.y -= (frame_time * 5.0f) * speed;
+        }
+        if (state[SDL_SCANCODE_LEFT]) {
+            camera.x -= (frame_time * 5.0f) * speed;
+        }
+        if (state[SDL_SCANCODE_RIGHT]) {
+            camera.x += (frame_time * 5.0f) * speed;
         }
 
 
@@ -402,50 +429,37 @@ void Window::run ()
 //        glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
 //        glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
 
-        /////////////////////////////////////
         // Calculate current time
         float time_since_start = std::chrono::duration_cast<Time>(current_time - start_time).count();
+
         // Generate the view matrix using the camera position
-//        glm::mat4 view = glm::rotate(glm::lookAt(camera, glm::vec3{camera.x, camera.y, 0.0f}, Up), glm::radians(time_since_start * 30.0f) * 0.0f, glm::vec3(0.0f, 0.0f, 1.0f));
         glm::mat4 view = glm::lookAt(camera, glm::vec3{camera.x, camera.y, camera.z - 1.0f}, Up);
 
-        int x, y;
-        SDL_GetMouseState(&x, &y);
-        glm::vec3 mouse = glm::unProject(glm::vec3(x, viewport.w - y, 0.0f), view, projection, viewport);
+        // Get the mouse position (in world coordinates)
+        int tmpMouseX, tmpMouseY;
+        SDL_GetMouseState(&tmpMouseX, &tmpMouseY);
+        glm::vec3 mouse = glm::unProject(glm::vec3(tmpMouseX, viewport.w - tmpMouseY, 1.0f), view, projection, viewport);
 
-        info("Camera: {}, {}, {}", camera.x, camera.y, camera.z);
+        // Get the screen bounding recatingle
+        Rect screenBounds{
+            glm::unProject(glm::vec3(viewport.x, viewport.y, 1.0f), view, projection, viewport),
+            glm::unProject(glm::vec3(viewport.z, viewport.w, 1.0f), view, projection, viewport),
+        };
+
         info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
-        info();
 
         // Clear screen
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glClear(GL_COLOR_BUFFER_BIT);
-        // Draw tilemap
-        tileMap.render(camera, projection, view);
-        // Draw sprites
-        /////////////////////////////////////
 
-        Shader::use(shader);
-        glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
-        glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
-        mesh.draw();
-
-//        // Render each viewport in turn
-//        for (auto viewport : viewports) {
-//            // Setup the viewport position and dimensions
-//            glViewport(viewport.x, viewport.y, viewport.width, viewport.height);
-//            // Setup stencil buffer here?
-//            // ...
-//            // Render the viewports scene
-//            // ...
-//            // Cast shadows
-//            for (auto light : viewport.lights) {
-//                // Render from each lights pov to cast dynamic shadows
-//                // ...
-//            }
-//            // Combine and postprocess
-//            // ...
-//        }
+        // Render all renderables
+        for (auto renderable : renderables) {
+            Shader::use(renderable->shader());
+            glUniformMatrix4fv(renderable->projection(), 1, GL_FALSE, glm::value_ptr(projection));
+            glUniformMatrix4fv(renderable->view(), 1, GL_FALSE, glm::value_ptr(view));
+            renderable->render(screenBounds);
+        }
+        info();
 
         // Refresh display
         SDL_GL_SwapWindow(window);

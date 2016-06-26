@@ -11,12 +11,12 @@
 using Shader_t = Shader::Shader;
 
 TileMap::~TileMap () {
-    Shader::unload(shader);
+    Shader::unload(tileShader);
 }
 
 void TileMap::init (const std::vector<std::vector<float>>& map)
 {
-    shader = Shader::load(
+    tileShader = Shader::load(
         // VERTEX SHADER
         "#version 330 core"
         "   layout(location = 0) in vec2 in_Position;"
@@ -54,14 +54,14 @@ void TileMap::init (const std::vector<std::vector<float>>& map)
 
     // Generate grid
     float x = 0.0f;
-    float y = 0.0f;
+    float y = map.size();
     std::size_t w = 0;
     for (auto row : map) {
         for (auto col : row) {
             vertices.push_back(glm::vec2{x,        y       });
             vertices.push_back(glm::vec2{x + 1.0f, y       });
-            vertices.push_back(glm::vec2{x + 1.0f, y - 1.2f});
-            vertices.push_back(glm::vec2{x,        y - 1.2f});
+            vertices.push_back(glm::vec2{x + 1.0f, y - 1.0f});
+            vertices.push_back(glm::vec2{x,        y - 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
             colours.push_back(glm::vec4{1.0f, 1.0f, 1.0f, 1.0f});
@@ -84,73 +84,67 @@ void TileMap::init (const std::vector<std::vector<float>>& map)
     mesh.addBuffer(vertices, true);
     mesh.addBuffer(colours);
     mesh.addBuffer(texcoords);
-    mesh.addBuffer(images);
+    imageIdBuffer = mesh.addBuffer(images);
     mesh.addIndexBuffer();
 
     width = w;
     height = map.size();
+    max_index = width * height * 4;
     info("Tilemap loaded: width={} height={}", width, height);
 
-    u_projection = glGetUniformLocation(shader.programID, "u_projection");
-    u_view = glGetUniformLocation(shader.programID, "u_view");
-    u_texture = glGetUniformLocation(shader.programID, "u_texture");
+    u_projection = glGetUniformLocation(tileShader.programID, "u_projection");
+    u_view = glGetUniformLocation(tileShader.programID, "u_view");
+    u_texture = glGetUniformLocation(tileShader.programID, "u_texture");
 }
 
-void TileMap::render (const glm::vec3& camera, const glm::mat4& projection, const glm::mat4& view)
+void TileMap::reset (const std::vector<std::vector<float>>& map)
 {
-    Shader::use(shader);
+    auto images = std::vector<float>{};
+    // Generate grid
+    for (auto row : map) {
+        for (auto col : row) {
+            images.push_back(col);
+            images.push_back(col);
+            images.push_back(col);
+            images.push_back(col);
+        }
+    }
+    mesh.setBuffer(imageIdBuffer, images);
+}
+
+void TileMap::render (const Rect& bounds)
+{
     glUniform1i(u_texture, 0);
-    glUniformMatrix4fv(u_projection, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniformMatrix4fv(u_view, 1, GL_FALSE, glm::value_ptr(view));
-
-    // Calculate views bounding rect in world space
-    auto ipv = glm::inverse(projection * view);
-    auto top_left = ipv * glm::vec4(-1.0f, 1.0f, 0.0f, 1.0f);
-    auto bottom_right = ipv * glm::vec4(1.0f, -1.0f, 0.0f, 1.0f);
-
-    info("Camera: {}, {}, {}  | bounds: {},{} {},{}", camera.x, camera.y, camera.z, top_left.x, top_left.y, bottom_right.x, bottom_right.y);
 
     // Generate tilemap indices
     auto indices = std::vector<GLushort>{};
-    int xbase = (int)(camera.x - 0.0f);
-    int tile_y = (int)(camera.y - 5.0f);
-    auto tile_x = xbase;
-
-    auto base_tile = (tile_y * width) + tile_x;
+    int base_tile = ((height - int(bounds.top_left.y)) * width) + int(bounds.top_left.x);
     auto base = base_tile * 4;
     auto index = base;
 
-    for (float index = 0.0f; index < 800.0f; index += 4.0f) {
-            indices.push_back(index);
-            indices.push_back(index + 1);
-            indices.push_back(index + 2);
-            indices.push_back(index + 2);
-            indices.push_back(index + 3);
-            indices.push_back(index);
+    for (auto y = bounds.top_left.y; y <= bounds.bottom_right.y; ++y) {
+        for (auto x = bounds.top_left.x; x < bounds.bottom_right.x; ++x) {
+            if (index >= 0.0f && index < max_index) {
+                indices.push_back(index);
+                indices.push_back(index + 1);
+                indices.push_back(index + 2);
+                indices.push_back(index + 2);
+                indices.push_back(index + 3);
+                indices.push_back(index);
+            } else {
+                // Keep the buffer size the same for orphaning
+                indices.push_back(0);
+                indices.push_back(0);
+                indices.push_back(0);
+                indices.push_back(0);
+                indices.push_back(0);
+                indices.push_back(0);
+            }
+            index += 4;
+        }
+        base -= (int)width * 4;
+        index = base;
     }
-
-//    for (auto y = 0.0f; y < 15; ++y) {
-//        for (auto x = 0.0f; x < 14; ++x) {
-//            if (index >= 0 && index < width * height * 4 && x + camera.x >= 0.0f && x + camera.x < width) {
-//                indices.push_back(index);
-//                indices.push_back(index + 1);
-//                indices.push_back(index + 2);
-//                indices.push_back(index + 2);
-//                indices.push_back(index + 3);
-//                indices.push_back(index);
-//            } else {
-//                indices.push_back(0);
-//                indices.push_back(0);
-//                indices.push_back(0);
-//                indices.push_back(0);
-//                indices.push_back(0);
-//                indices.push_back(0);
-//            }
-//            index += 4;
-//        }
-//        base += (int)width * 4;
-//        index = base;
-//    }
 
     mesh.drawIndexed(indices);
 }

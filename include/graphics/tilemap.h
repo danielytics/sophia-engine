@@ -5,22 +5,42 @@
 #include "mesh.h"
 #include <glm/glm.hpp>
 
-class TileMap {
-    using Shader_t = Shader::Shader;
+struct Rect {
+    glm::vec3 top_left;
+    glm::vec3 bottom_right;
+};
+
+using Shader_t = Shader::Shader;
+
+class Renderable {
+public:
+    virtual Shader_t shader ()=0;
+    virtual void render (const Rect& bounds)=0;
+    virtual GLuint projection ()=0;
+    virtual GLuint view ()=0;
+};
+
+class TileMap : public Renderable {
 public:
     ~TileMap ();
 
     void init (const std::vector<std::vector<float>>& map);
-    void render (const glm::vec3& camera, const glm::mat4& projection, const glm::mat4& view);
+    void reset (const std::vector<std::vector<float>>& map);
+    Shader_t shader () {return tileShader;}
+    void render (const Rect& bounds);
 
+    GLuint projection () {return u_projection;}
+    GLuint view () {return u_view;}
 private:
     Mesh mesh;
-    Shader_t shader;
+    Shader_t tileShader;
+    GLuint u_texture;
     GLuint u_projection;
     GLuint u_view;
-    GLuint u_texture;
+    unsigned imageIdBuffer;
     int width;
     int height;
+    int max_index;
 };
 
 #endif // TILEMAP_H
