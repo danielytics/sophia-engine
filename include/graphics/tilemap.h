@@ -1,24 +1,8 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-#include "shader.h"
+#include "renderable.h"
 #include "mesh.h"
-#include <glm/glm.hpp>
-
-struct Rect {
-    glm::vec3 top_left;
-    glm::vec3 bottom_right;
-};
-
-using Shader_t = Shader::Shader;
-
-class Renderable {
-public:
-    virtual Shader_t shader ()=0;
-    virtual void render (const Rect& bounds)=0;
-    virtual GLuint projection ()=0;
-    virtual GLuint view ()=0;
-};
 
 class TileMap : public Renderable {
 public:
@@ -26,11 +10,12 @@ public:
 
     void init (const std::vector<std::vector<float>>& map);
     void reset (const std::vector<std::vector<float>>& map);
-    Shader_t shader () {return tileShader;}
-    void render (const Rect& bounds);
 
+    void render (const Rect& bounds);
+    Shader_t shader () {return tileShader;}
     GLuint projection () {return u_projection;}
     GLuint view () {return u_view;}
+
 private:
     Mesh mesh;
     Shader_t tileShader;

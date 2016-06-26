@@ -54,7 +54,8 @@ SOURCES += src/core/main.cpp \
     src/util/logging.cpp \
     src/window/window.cpp \
     src/graphics/shader.cpp \
-    src/graphics/tilemap.cpp
+    src/graphics/tilemap.cpp \
+    src/graphics/spritepool.cpp
 
 HEADERS += \
     include/util/telemetry.h \
@@ -64,4 +65,6 @@ HEADERS += \
     include/graphics/shader.h \
     include/util/stb_image.h \
     include/graphics/tilemap.h \
-    include/graphics/mesh.h
+    include/graphics/mesh.h \
+    include/graphics/renderable.h \
+    include/graphics/spritepool.h
