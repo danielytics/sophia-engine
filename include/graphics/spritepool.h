@@ -13,7 +13,7 @@ class SpritePool : public Renderable {
 public:
     ~SpritePool ();
 
-    void init ();
+    void init (unsigned numSprites);
     void update (const std::vector<Sprite>& sprites);
 
     void render (const Rect& bounds);

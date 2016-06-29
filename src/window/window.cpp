@@ -17,6 +17,7 @@
 
 #include <iostream>
 #include <cmath>
+#include <random>
 
 #include <stdexcept>
 #include <chrono>
@@ -243,11 +244,16 @@ void Window::run ()
      });
 
     SpritePool sprites;
-    sprites.init();
-    sprites.update(std::vector<Sprite>{
-                       {{ 0.0f, 0.0f}, 1},
-                       {{ 2.0f, 0.0f}, 1},
-                   });
+    sprites.init(2);
+    std::vector<Sprite> spriteData;
+    {
+        std::random_device rd;
+        std::mt19937 mt(rd());
+        std::uniform_real_distribution<float> dist(0.0, 100.0);
+        for (unsigned i=0; i<100000; ++i) {
+            spriteData.push_back(Sprite{{dist(mt), dist(mt)}, 1});
+        }
+    }
 
     glm::vec3 camera = glm::vec3(0.0f, 0.0f, 10.0f);
     glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -346,6 +352,7 @@ void Window::run ()
         };
 
         info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
+        sprites.update(spriteData);
 
         // Clear screen
         glClearColor(0.0, 0.0, 0.0, 1.0);
