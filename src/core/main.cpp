@@ -21,7 +21,7 @@ typedef std::chrono::duration<Time_t> Time;
 int main(int argc, char *argv[])
 {
     YAML::Node config = YAML::LoadFile("config.yml");
-    Logging::init();
+    Logging::init(config);
 
     {
         Window window("Bento");
