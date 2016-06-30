@@ -2,9 +2,10 @@
 #define LOGGING_H
 
 #include <spdlog/spdlog.h>
+#include "util/config.h"
 
 namespace Logging {
-    void init ();
+    void init (const YAML::Node&);
     void term ();
 
     extern std::shared_ptr<spdlog::logger> logger;

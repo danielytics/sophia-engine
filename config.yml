@@ -13,6 +13,6 @@ graphics:
 telemetry:
     # Development mode. Ignored in release builds, valid values are: Yes, No
     dev_mode: Yes
-    # Is telemetry enabled? Valid values are: Yes, No or some of ["frame", "guage", "counter", "debug", "info", "warn", "error"]
-    # In release builds, frame, guage, counter and debug are ignored.
-    enabled: Yes
+    # Is logging enabled? Valid values are: No or one of "trace", "debug", "info", "warn", "error"
+    # In release builds, trace and debug are ignored.
+    logging: info
