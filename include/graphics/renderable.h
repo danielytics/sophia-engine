@@ -13,10 +13,11 @@ using Shader_t = Shader::Shader;
 
 class Renderable {
 public:
+    virtual ~Renderable();
     virtual Shader_t shader ()=0;
     virtual void render (const Rect& bounds)=0;
-    virtual GLuint projection ()=0;
-    virtual GLuint view ()=0;
+    virtual GLint projection ()=0;
+    virtual GLint view ()=0;
 };
 
 #endif // RENDERABLE_H

@@ -13,15 +13,15 @@ public:
 
     void render (const Rect& bounds);
     Shader_t shader () {return tileShader;}
-    GLuint projection () {return u_projection;}
-    GLuint view () {return u_view;}
+    GLint projection () {return u_projection;}
+    GLint view () {return u_view;}
 
 private:
     Mesh mesh;
     Shader_t tileShader;
-    GLuint u_texture;
-    GLuint u_projection;
-    GLuint u_view;
+    GLint u_texture;
+    GLint u_projection;
+    GLint u_view;
     unsigned imageIdBuffer;
     int width;
     int height;

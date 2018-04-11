@@ -18,18 +18,18 @@ public:
 
     void render (const Rect& bounds);
     Shader_t shader () {return spriteShader;}
-    GLuint projection () {return u_projection;}
-    GLuint view () {return u_view;}
+    GLint projection () {return u_projection;}
+    GLint view () {return u_view;}
 
 private:
     Mesh mesh;
     Shader_t spriteShader;
     GLuint tbo;
     GLuint tbo_tex;
-    GLuint u_tbo_tex;
-    GLuint u_texture;
-    GLuint u_projection;
-    GLuint u_view;
+    GLint u_tbo_tex;
+    GLint u_texture;
+    GLint u_projection;
+    GLint u_view;
 
     unsigned spriteCount;
 };

@@ -8,7 +8,7 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
 
     // Compile the shader
     char* source = const_cast<char*>(shaderSource.c_str());
-    int32_t size = shaderSource.length();
+    int32_t size = int32_t(shaderSource.length());
     glShaderSource(program, 1, &source, &size);
     glCompileShader(program);
 
@@ -30,7 +30,7 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
         delete [] shaderInfoLog;
 
         // Signal error
-        return -1;
+        return GLuint(-1);
     }
 
     // Attach the compiled program
@@ -51,7 +51,7 @@ Shader::Shader Shader::load (const std::string& vertexShader, const std::string&
     // Link the shader programs into one
     glLinkProgram(shaderProgram);
     int isLinked;
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, (int*)&isLinked);
+    glGetProgramiv(shaderProgram, GL_LINK_STATUS, reinterpret_cast<int*>(&isLinked));
     if (!isLinked) {
         // Find length of shader info log
         int maxLength;
@@ -65,13 +65,13 @@ Shader::Shader Shader::load (const std::string& vertexShader, const std::string&
 
         delete [] shaderProgramInfoLog;
 
-        return Shader::Shader{};
+        return {};
     }
 
-    return Shader::Shader{shaderProgram, vertexProgram, fragmentProgram};
+    return {shaderProgram, vertexProgram, fragmentProgram};
 }
 
-void Shader::unload (const Shader::Shader& shader)
+void Shader::unload (const Shader& shader)
 {
     glUseProgram(0);
     glDetachShader(shader.programID, shader.vertexProgram);

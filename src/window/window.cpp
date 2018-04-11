@@ -15,6 +15,8 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <entt/entt.hpp>
+
 #include <iostream>
 #include <cmath>
 #include <random>
@@ -22,8 +24,10 @@
 #include <stdexcept>
 #include <chrono>
 typedef std::chrono::high_resolution_clock Clock;
-typedef double Time_t;
+typedef float Time_t;
 typedef std::chrono::duration<Time_t> Time;
+
+Renderable::~Renderable() {}
 
 GLuint loadTexture (const std::string& filename)
 {
@@ -213,7 +217,7 @@ void Window::run ()
     bool running = true;
 
     // Initialise timekeeping
-    float frame_time;
+    float frame_time = 0;
     auto start_time = Clock::now();
     auto previous_time = start_time;
     auto current_time = start_time;
@@ -249,8 +253,8 @@ void Window::run ()
     {
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_real_distribution<float> dist(0.0, 100.0);
-        for (unsigned i=0; i<100000; ++i) {
+        std::uniform_real_distribution<float> dist(0.0, 400.0);
+        for (unsigned i=0; i<1000000; ++i) {
             spriteData.push_back(Sprite{{dist(mt), dist(mt)}, 1});
         }
     }
@@ -319,7 +323,7 @@ void Window::run ()
                 }
             }
         }
-        const Uint8* state = SDL_GetKeyboardState(NULL);
+        const Uint8* state = SDL_GetKeyboardState(nullptr);
         auto speed = state[SDL_SCANCODE_LSHIFT] ? 3.0f : 2.0f;
         if (state[SDL_SCANCODE_UP]){
             camera.y += (frame_time * 5.0f) * speed;
