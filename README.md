@@ -27,6 +27,7 @@ Engine Dependencies:
 * [LuaJIT](http://luajit.org/luajit.html) - Lua bindings and JIT runtime (MIT License)
 * [Assimp](http://assimp.org/) - Asset importer (BSD License)
 * [Bullet](https://github.com/bulletphysics/bullet3) - Physics engine (zlib License)
+* [std_image](https://github.com/nothings/stb) - Image loading library (public domain & MIT License)
 
 Editor Dependencies:
 
