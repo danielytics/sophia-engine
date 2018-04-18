@@ -16,8 +16,8 @@ public:
     virtual ~Renderable();
     virtual Shader_t shader ()=0;
     virtual void render (const Rect& bounds)=0;
-    virtual GLint projection ()=0;
-    virtual GLint view ()=0;
+    virtual Uniform_t projection ()=0;
+    virtual Uniform_t view ()=0;
 };
 
 #endif // RENDERABLE_H

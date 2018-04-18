@@ -48,7 +48,14 @@ unix:!macx {
 
 }
 
-DISTFILES +=
+DISTFILES += \
+    data/shaders/pbr.frag \
+    data/shaders/pbr.vert \
+    data/shaders/lamp.frag \
+    data/shaders/lighting.frag \
+    data/shaders/lighting.vert \
+    data/shaders/shadowmap.frag \
+    data/shaders/shadowmap.vert
 
 SOURCES += src/core/main.cpp \
     src/util/telemetry.cpp \

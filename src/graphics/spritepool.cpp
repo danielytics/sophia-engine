@@ -5,7 +5,7 @@
 using Shader_t = Shader::Shader;
 
 SpritePool::~SpritePool () {
-    Shader::unload(spriteShader);
+    spriteShader.unload();
 }
 
 void SpritePool::init (unsigned numSprites)

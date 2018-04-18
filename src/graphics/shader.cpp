@@ -71,12 +71,23 @@ Shader::Shader Shader::load (const std::string& vertexShader, const std::string&
     return {shaderProgram, vertexProgram, fragmentProgram};
 }
 
-void Shader::unload (const Shader& shader)
+void Shader::Shader::unload () const
 {
     glUseProgram(0);
-    glDetachShader(shader.programID, shader.vertexProgram);
-    glDetachShader(shader.programID, shader.fragmentProgram);
-    glDeleteProgram(shader.programID);
-    glDeleteShader(shader.vertexProgram);
-    glDeleteShader(shader.fragmentProgram);
+    glDetachShader(programID, vertexProgram);
+    glDetachShader(programID, fragmentProgram);
+    glDeleteProgram(programID);
+    glDeleteShader(vertexProgram);
+    glDeleteShader(fragmentProgram);
+}
+
+void Shader::Shader::bindUnfiromBlock(const std::string& blockName, unsigned int bindingPoint) const
+{
+    GLuint location = glGetUniformBlockIndex(programID, blockName.c_str());
+    glUniformBlockBinding(programID, location, bindingPoint);
+}
+
+Uniform_t Shader::Shader::uniform(const std::string& name) const
+{
+    return glGetUniformLocation(programID, name.c_str());
 }

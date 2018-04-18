@@ -33,6 +33,8 @@ private:
     glm::mat4 projection;
     glm::vec4 viewport;
     const std::string title;
+    float width;
+    float height;
 };
 
 #endif // WINDOW_H

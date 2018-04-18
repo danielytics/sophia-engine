@@ -46,6 +46,7 @@ public:
         glBindVertexArray(vao);
     }
     ~Mesh () {
+        glDeleteVertexArrays(1, &vao);
         for (auto vbo : vbos) {
             glDeleteBuffers(1, &vbo);
         }
