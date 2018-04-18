@@ -14,6 +14,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 
 #include <entt/entt.hpp>
 
@@ -26,6 +27,8 @@
 typedef std::chrono::high_resolution_clock Clock;
 typedef float Time_t;
 typedef std::chrono::duration<Time_t> Time;
+
+ const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 Renderable::~Renderable() {}
 
@@ -86,6 +89,137 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
     return texture;
 }
 
+#include <fstream>
+#include "graphics/shader.h"
+
+struct Test {
+     Shader_t shader;
+     Shader_t lamp;
+     Shader_t shadows;
+     GLuint light_vao;
+     GLuint vbo;
+     GLuint backdrop_vao;
+     GLuint backdrop_vbo;
+     GLuint depthMapFBO;
+     GLuint depthMap;
+};
+
+Shader_t loadShaders(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+    std::ifstream vertexShaderFile { vertexShaderFilename };
+    std::string vertexShaderSource { std::istreambuf_iterator<char>(vertexShaderFile), std::istreambuf_iterator<char>() };
+    std::ifstream fragmentShaderFile { fragmentShaderFilename };
+    std::string fragmentShaderSource { std::istreambuf_iterator<char>(fragmentShaderFile), std::istreambuf_iterator<char>() };
+    return Shader::load(vertexShaderSource, fragmentShaderSource);
+}
+
+Test setupTest() {
+
+    GLuint lightVAO;
+    GLuint vbo;
+    glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+    glGenBuffers(1, &vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, vbo);
+    float vertices[] = {
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+         0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+    };
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    // set the vertex attributes (only position data for our lamp)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Backdrop plane
+    float backdrop[] = {
+        -0.5f, -0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
+         0.5f,  0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f,  0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.0f,  0.0f,  0.0f, 1.0f
+    };
+    GLuint backdropVAO;
+    GLuint backdropVBO;
+    glGenVertexArrays(1, &backdropVAO);
+    glBindVertexArray(backdropVAO);
+    glGenBuffers(1, &backdropVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, backdropVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(backdrop), backdrop, GL_STATIC_DRAW);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(0));
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), reinterpret_cast<void*>(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
+    // Shadow mapping
+    GLuint depthMapFBO;
+    glGenFramebuffers(1, &depthMapFBO);
+    GLuint depthMap;
+    glGenTextures(1, &depthMap);
+    glBindTexture(GL_TEXTURE_2D, depthMap);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
+    glDrawBuffer(GL_NONE);
+    glReadBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    return {
+        loadShaders("data/shaders/lighting.vert", "data/shaders/lighting.frag"),
+        loadShaders("data/shaders/lighting.vert", "data/shaders/lamp.frag"),
+        loadShaders("data/shaders/shadowmap.vert", "data/shaders/shadowmap.frag"),
+        lightVAO,
+        vbo,
+        backdropVAO,
+        backdropVBO,
+        depthMapFBO,
+        depthMap
+    };
+}
 
 Window::Window (const std::string& title)
     : ready(false)
@@ -190,13 +324,13 @@ void Window::open (const YAML::Node& config_node)
     // Create OpenGL rendering context
     context = SDL_GL_CreateContext(window);
 
-    float width = static_cast<float>(config.resolution.width);
-    float height = static_cast<float>(config.resolution.height);
+    width = static_cast<float>(config.resolution.width);
+    height = static_cast<float>(config.resolution.height);
     projection = glm::perspective(glm::radians(60.0f), width / height, 0.1f, 20.0f);
 //    float w = (width / height) * 5.0f;
 //    projection = glm::ortho(-w, w, -5.0f, 5.0f, 0.0f, 10.0f);
     viewport = glm::vec4(0, 0, width, height);
-    glViewport(0, 0, config.resolution.width, config.resolution.height);
+    glViewport(0, 0, int(width), int(height));
 
     // Set vertical sync if configured
     SDL_GL_SetSwapInterval(config.vsync);
@@ -278,6 +412,55 @@ void Window::run ()
         &sprites,
     };
 
+    Test test = setupTest();
+    test.lamp.bindUnfiromBlock("Matrices", 0);
+    test.shader.bindUnfiromBlock("Matrices", 0);
+    test.shadows.bindUnfiromBlock("Matrices", 0);
+
+    GLuint matrices_ubo;
+    glGenBuffers(1, &matrices_ubo);
+    glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
+    glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+    glBindBufferRange(GL_UNIFORM_BUFFER, 0, matrices_ubo, 0, 2 * sizeof(glm::mat4));
+    glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
+    glBufferSubData(GL_UNIFORM_BUFFER, 0, sizeof(glm::mat4), glm::value_ptr(projection));
+    glBindBuffer(GL_UNIFORM_BUFFER, 0);
+
+    Uniform_t u_lamp_model = test.lamp.uniform("model");
+    Uniform_t u_lamp_color = test.lamp.uniform("lightColor");
+
+    Uniform_t u_model = test.shader.uniform("model");
+    Uniform_t u_normal = test.shader.uniform("normal");
+    Uniform_t u_material_ambient = test.shader.uniform("material.ambient");
+    Uniform_t u_material_diffuse = test.shader.uniform("material.diffuse");
+    Uniform_t u_material_specular = test.shader.uniform("material.specular");
+    Uniform_t u_material_shininess = test.shader.uniform("material.shininess");
+
+    Uniform_t u_light0_ambient = test.shader.uniform("lights[0].ambient");
+    Uniform_t u_light0_diffuse = test.shader.uniform("lights[0].diffuse");
+    Uniform_t u_light0_specular = test.shader.uniform("lights[0].specular");
+    Uniform_t u_light0_position = test.shader.uniform("lights[0].position");
+    Uniform_t u_light0_lightspace = test.shader.uniform("lights[0].lightSpaceMatrix");
+    Uniform_t u_light1_ambient = test.shader.uniform("lights[1].ambient");
+    Uniform_t u_light1_diffuse = test.shader.uniform("lights[1].diffuse");
+    Uniform_t u_light1_specular = test.shader.uniform("lights[1].specular");
+    Uniform_t u_light1_position = test.shader.uniform("lights[1].position");
+    Uniform_t u_light1_lightspace = test.shader.uniform("lights[1].lightSpaceMatrix");
+
+    Uniform_t u_shadow_model = test.shadows.uniform("model");
+    Uniform_t u_lightspace = test.shadows.uniform("lightSpaceMatrix");
+
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+    glDepthFunc(GL_LEQUAL);
+    glDisable(GL_BLEND);
+    glDisable(GL_STENCIL_TEST);
+    glClearDepth(1.0);
+//    glEnable(GL_CULL_FACE);
+    glCullFace(GL_BACK);
+    glFrontFace(GL_CCW);
+
     // Run the main processing loop
     do {
         // Gather and dispatch input
@@ -343,6 +526,9 @@ void Window::run ()
 
         // Generate the view matrix using the camera position
         glm::mat4 view = glm::lookAt(camera, glm::vec3{camera.x, camera.y, camera.z - 1.0f}, Up);
+        glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
+        glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
+        glBindBuffer(GL_UNIFORM_BUFFER, 0);
 
         // Get the mouse position (in world coordinates)
         int tmpMouseX, tmpMouseY;
@@ -356,20 +542,119 @@ void Window::run ()
         };
 
         info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
-        sprites.update(spriteData);
+//        sprites.update(spriteData);
 
         // Clear screen
-        glClearColor(0.0, 0.0, 0.0, 1.0);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // Render all renderables
-        for (auto renderable : renderables) {
-            Shader::use(renderable->shader());
-            glUniformMatrix4fv(renderable->projection(), 1, GL_FALSE, glm::value_ptr(projection));
-            glUniformMatrix4fv(renderable->view(), 1, GL_FALSE, glm::value_ptr(view));
-            renderable->render(screenBounds);
-        }
+//        // Render all renderables
+//        for (auto renderable : renderables) {
+//            renderable->shader().use();
+//            glUniformMatrix4fv(renderable->projection(), 1, GL_FALSE, glm::value_ptr(projection));
+//            glUniformMatrix4fv(renderable->view(), 1, GL_FALSE, glm::value_ptr(view));
+//            renderable->render(screenBounds);
+//        }
         info();
+
+        glm::vec3 lightPos0(20.0f, 0.0f, 3.0f);
+        glm::vec3 lightPos1(-20.0f, 5.0f, 5.0f);
+        glm::mat4 light0_lightSpaceMatrix;
+        glm::mat4 light1_lightSpaceMatrix;
+
+        // Render shadowmap
+        glViewport(0, 0, SHADOW_WIDTH, SHADOW_HEIGHT);
+        glBindFramebuffer(GL_FRAMEBUFFER, test.depthMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        {
+            float near_plane = 1.0f, far_plane = 7.5f;
+            glm::mat4 lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+            glm::mat4 lightView = glm::lookAt(glm::vec3(-2.0f, 4.0f, -1.0f),
+                                              glm::vec3( 0.0f, 0.0f,  0.0f),
+                                              glm::vec3( 0.0f, 1.0f,  0.0f));
+            light0_lightSpaceMatrix = lightProjection * lightView;
+
+            test.shadows.use();
+            Shader::setUniform(u_lightspace, light0_lightSpaceMatrix);
+
+            // Render scene to shadowmap
+            glm::mat4 model = glm::mat4( 1.0 );
+            model = glm::scale(model, glm::vec3(1.2f));
+            model = glm::translate(model, glm::vec3(mouse.x, mouse.y, 0));
+            Shader::setUniform(u_shadow_model, model);
+            glBindVertexArray(test.light_vao);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+        // Render scene
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glViewport(0, 0, int(width), int(height));
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, test.depthMap);
+
+        // test
+        {
+            test.lamp.use();
+            glm::mat4 model = glm::mat4( 1.0 );
+            model = glm::scale(model, glm::vec3(0.2f));
+            model = glm::translate(model, lightPos0);
+            Shader::setUniform(u_lamp_model, model);
+            Shader::setUniform(u_lamp_color, glm::vec3(1.0f, 0.0f, 0.0f));
+            glBindVertexArray(test.light_vao);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            model = glm::mat4( 1.0 );
+            model = glm::scale(model, glm::vec3(0.2f));
+            model = glm::translate(model, lightPos1);
+            Shader::setUniform(u_lamp_model, model);
+            Shader::setUniform(u_lamp_color, glm::vec3(0.0f, 0.0f, 1.0f));
+            glBindVertexArray(test.light_vao);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+        glm::vec4 light0_pos = view * glm::vec4(lightPos0, 1.0);
+        glm::vec4 light1_pos = view * glm::vec4(lightPos1, 1.0);
+        {
+            test.shader.use();
+            Shader::setUniform(u_light0_position, light0_pos);
+            Shader::setUniform(u_light0_ambient,  glm::vec3(0.2f, 0.05f, 0.05f));
+            Shader::setUniform(u_light0_diffuse,  glm::vec3(1.0f, 0.1f, 0.1f));
+            Shader::setUniform(u_light0_specular, glm::vec3(1.0f, 0.25f, 0.25f));
+            Shader::setUniform(u_light0_lightspace, light0_lightSpaceMatrix);
+            Shader::setUniform(u_light1_position, light1_pos);
+            Shader::setUniform(u_light1_ambient,  glm::vec3(0.05f, 0.05f, 0.2f));
+            Shader::setUniform(u_light1_diffuse,  glm::vec3(0.1f, 0.1f, 1.0f));
+            Shader::setUniform(u_light1_specular, glm::vec3(0.25f, 0.25f, 1.0f));
+            Shader::setUniform(u_light1_lightspace, light1_lightSpaceMatrix);
+
+            glm::mat4 model = glm::mat4( 1.0 );
+            model = glm::scale(model, glm::vec3(25.0f, 25.0f, 1.0f));
+            model = glm::translate(model, glm::vec3(0, 0, -10.0f));
+            Shader::setUniform(u_model, model);
+            glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(model * view));
+            Shader::setUniform(u_normal, normalMatrix);
+            Shader::setUniform(u_material_ambient, glm::vec3(0.2f, 0.2f, 0.2));
+            Shader::setUniform(u_material_diffuse, glm::vec3(0.6f, 0.6f, 0.6f));
+            Shader::setUniform(u_material_specular, glm::vec3(0.8f, 0.8f, 0.8f));
+            Shader::setUniform(u_material_shininess, 8.0f);
+            glBindVertexArray(test.backdrop_vao);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+
+            model = glm::mat4( 1.0 );
+            model = glm::scale(model, glm::vec3(1.2f));
+            model = glm::translate(model, glm::vec3(mouse.x, mouse.y, 0));
+            normalMatrix = glm::inverseTranspose(glm::mat3(model * view));
+
+            Shader::setUniform(u_model, model);
+            Shader::setUniform(u_normal, normalMatrix);
+            Shader::setUniform(u_material_ambient, glm::vec3(0.2f, 0.2f, 0.2f));
+            Shader::setUniform(u_material_diffuse, glm::vec3(0.8f, 0.8f, 0.8f));
+            Shader::setUniform(u_material_specular, glm::vec3(1.0f, 1.0f, 1.0f));
+            Shader::setUniform(u_material_shininess, 32.0f);
+            glBindVertexArray(test.light_vao);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
 
         // Refresh display
         SDL_GL_SwapWindow(window);
@@ -381,6 +666,14 @@ void Window::run ()
         frames.inc();
         trace("Frame {} ended after {:1.6f} seconds", frames.get(), frame_time);
     } while (running);
+
+    test.shader.unload();
+    test.lamp.unload();
+    glDeleteBuffers(1, &matrices_ubo);
+    glDeleteBuffers(1, &test.vbo);
+    glDeleteBuffers(1, &test.backdrop_vbo);
+    glDeleteVertexArrays(1, &test.light_vao);
+    glDeleteVertexArrays(1, &test.backdrop_vao);
 
     glDeleteTextures(1, &texture);
 

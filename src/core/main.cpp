@@ -26,6 +26,7 @@ int main(int argc, char *argv[])
 
         window.run();
     }
+
     Logging::term();
     return 0;
 }

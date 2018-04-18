@@ -11,7 +11,7 @@
 using Shader_t = Shader::Shader;
 
 TileMap::~TileMap () {
-    Shader::unload(tileShader);
+    tileShader.unload();
 }
 
 void TileMap::init (const std::vector<std::vector<float>>& map)
