@@ -7,10 +7,8 @@ Item {
     property var objectTypesModel
     property var _objectTypes
     property var _objects
-
-    Component.onCompleted: {
-        _objects = {};
-    }
+    property var _connections: []
+    property var _selectedConnection: -1
 
     Rectangle {
         anchors.fill: parent
@@ -22,18 +20,19 @@ Item {
         DropArea {
             anchors.fill: parent
             onDropped: {
-                var model = root._objectTypes[drop.text];
-                var newObject = object.createObject(container, {"x": drop.x - 110, "y": drop.y - (16 + (model.inputs.count > 0 ? 6 : 0)), "model": model});
-                root._objects[newObject] = newObject;
-                container.selected = newObject;
-                drop.accept(Qt.CopyAction);
+                if ((drop.formats + "").indexOf("x-applicatoin/object") !== -1) {
+                    var model = root._objectTypes[drop.text];
+                    var newObject = object.createObject(container, {"x": drop.x - 110, "y": drop.y - (16 + (model.inputs.count > 0 ? 6 : 0)), "model": model});
+                    root._objects[newObject] = newObject;
+                    container.selected = newObject;
+                    drop.accept(Qt.CopyAction);
+                }
             }
         }
 
         Flickable {
             id: container
             property var selected: null
-            property var connections: []
             anchors.fill: parent
             anchors.margins: 2
             ScrollBar.vertical: ScrollBar {
@@ -46,12 +45,24 @@ Item {
             clip: true
 
             Canvas {
+                id: canvas
                 anchors.fill: parent
                 contextType: "2d"
                 onPaint: {
-                    context.strokeStyle = Qt.rgba(.4,.6,.8);
-                    context.path = myPath;
-                    context.stroke();
+                    context.clearRect(0, 0, width, height);
+                    context.lineWidth = 5;
+                    for (var idx in root._connections) {
+                        var connection = root._connections[idx];
+                        if (connection.selected) {
+                            context.strokeStyle = Qt.rgba(1.0, 0.0, 0.0);
+                        } else {
+                            context.strokeStyle = Qt.rgba(.4,.6,.8);
+                        }
+                        context.beginPath()
+                        context.moveTo(connection.start.x, connection.start.y);
+                        context.lineTo(connection.end.x, connection.end.y);
+                        context.stroke();
+                    }
                 }
             }
 
@@ -59,15 +70,40 @@ Item {
                 id: mouseArea
                 anchors.fill: parent
                 onClicked: container.selected = null
-            }
-
-            Component {
-                id: object
-                Object {
-                    isSelected: container.selected === this
-                    onObjectSelected: container.selected = this
+                Component {
+                    id: object
+                    Object {
+                        isSelected: container.selected === this
+                        onObjectSelected: container.selected = this
+                        onConnectionSelected: {
+                            if (id === -1) {
+                                // New connection
+                                console.log("New connection");
+                                id = root._connections.length;
+                                var start = canvas.mapFromGlobal(startPoint.x, startPoint.y);
+                                root._connections.push({
+                                    start: start,
+                                    end: start,
+                                    selected: true
+                                });
+                                addConnection(id, connector); // Tell the object about the new connection id
+                            }
+                            console.log("Selected connection", id);
+                            root._selectedConnection = id;
+                            canvas.requestPaint();
+                        }
+                        onConnectionMoved: {
+                            if (root._selectedConnection > -1) {
+                                var connection = root._connections[root._selectedConnection];
+                                connection.end = canvas.mapFromGlobal(point.x, point.y);
+                                canvas.requestPaint();
+                            }
+                        }
+                        onConnectionDeselected: root._selectedConnection = -1;
+                    }
                 }
             }
+
         }
     }
 
@@ -78,6 +114,10 @@ Item {
             types[type.name] = type;
         }
         _objectTypes = types;
+    }
+
+    Component.onCompleted: {
+        _objects = {};
     }
 
     function deleteSelected() {

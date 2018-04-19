@@ -24,7 +24,8 @@ Rectangle {
                 Drag.dragType: Drag.Automatic
                 Drag.supportedActions: Qt.CopyAction
                 Drag.mimeData: {
-                    "text/plain": model.name
+                    "text/plain": model.name,
+                    "x-applicatoin/object": true
                 }
                 Drag.hotSpot: Qt.point(parent.width - 10, parent.height * 0.5)
             }
