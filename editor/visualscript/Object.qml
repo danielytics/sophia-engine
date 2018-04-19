@@ -13,7 +13,7 @@ Rectangle {
     color: "whitesmoke"
     x: 10
     y: 10
-    width: 100
+    width: 120
     height: 24 + (model.inputs.count > 0 ? _connectorSize : 2)  + (model.outputs.count > 0 ? _connectorSize : 2)
     radius: 3
 

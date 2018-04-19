@@ -9,11 +9,11 @@ Rectangle {
         x: 4
         y: 4
         sourceSize.height: 16
-        sourceSize.width: 16
+//        sourceSize.width: 16
         source: parent.icon
     }
     Text {
-        x: 24
+        x: 32
         anchors.verticalCenter: parent.verticalCenter
         text: parent.name
     }

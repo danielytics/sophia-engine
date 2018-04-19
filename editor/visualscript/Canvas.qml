@@ -22,7 +22,8 @@ Item {
         DropArea {
             anchors.fill: parent
             onDropped: {
-                var newObject = object.createObject(container, {"x": drop.x - 50, "y": drop.y - 10, "model": root._objectTypes[drop.text]});
+                var model = root._objectTypes[drop.text];
+                var newObject = object.createObject(container, {"x": drop.x - 110, "y": drop.y - (16 + (model.inputs.count > 0 ? 6 : 0)), "model": model});
                 root._objects[newObject] = newObject;
                 container.selected = newObject;
                 drop.accept(Qt.CopyAction);
@@ -32,6 +33,7 @@ Item {
         Flickable {
             id: container
             property var selected: null
+            property var connections: []
             anchors.fill: parent
             anchors.margins: 2
             ScrollBar.vertical: ScrollBar {
@@ -42,6 +44,16 @@ Item {
             }
             ScrollBar.horizontal: ScrollBar { }
             clip: true
+
+            Canvas {
+                anchors.fill: parent
+                contextType: "2d"
+                onPaint: {
+                    context.strokeStyle = Qt.rgba(.4,.6,.8);
+                    context.path = myPath;
+                    context.stroke();
+                }
+            }
 
             MouseArea {
                 id: mouseArea

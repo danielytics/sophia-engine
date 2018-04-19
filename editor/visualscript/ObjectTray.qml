@@ -8,12 +8,12 @@ Rectangle {
     border.color: "darkgray"
     border.width: 1
     color: "dimgray"
-    clip: true
     ListView {
         anchors.fill: parent
         anchors.margins: 2
         spacing: 2
         model: root.model
+        clip: true
         delegate: ObjectBase {
             name: model.name
             icon: model.icon

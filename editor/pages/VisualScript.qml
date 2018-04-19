@@ -16,7 +16,7 @@ Page {
         spacing: 1
         VS.ObjectTray {
             Layout.fillHeight: true
-            width: 80
+            width: 120
             model: objects
         }
         VS.Canvas {
