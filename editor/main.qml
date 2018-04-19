@@ -14,6 +14,10 @@ ApplicationWindow {
             anchors.fill: parent
             ToolButton {
                 id: firstButton
+                icon {source: "icons/solid/home.svg"}
+                onClicked: stackView.set("pages/Home.qml")
+            }
+            ToolButton {
                 icon {source: "icons/solid/dna.svg"}
                 onClicked: stackView.set("pages/VisualScript.qml")
             }
@@ -76,7 +80,13 @@ ApplicationWindow {
         }
         function set(newPage) {
             if (!currentItem || newPage !== currentItem.objectName) {
+                if (currentItem && currentItem.persist) {
+                    currentItem.persist();
+                }
                 replace(newPage, {"objectName": newPage});
+                if (currentItem.restore) {
+                    currentItem.restore();
+                }
             }
         }
         Component.onCompleted: set("pages/VisualScript.qml") // used instead of initialItem so that objectName gets set

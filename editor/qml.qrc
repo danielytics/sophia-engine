@@ -3,5 +3,10 @@
         <file>main.qml</file>
         <file>qtquickcontrols2.conf</file>
         <file>pages/VisualScript.qml</file>
+        <file>visualscript/Canvas.qml</file>
+        <file>visualscript/ObjectTray.qml</file>
+        <file>visualscript/ObjectBase.qml</file>
+        <file>visualscript/ObjectsModel.qml</file>
+        <file>visualscript/Object.qml</file>
     </qresource>
 </RCC>
