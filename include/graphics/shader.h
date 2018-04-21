@@ -22,7 +22,7 @@ namespace Shader {
         }
     };
 
-    Shader load (const std::string& vertexShader, const std::string& fragmentShader);
+    Shader load (const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename);
 
     inline void setUniform(Uniform_t location, float v) {return glUniform1f(location, v);}
     inline void setUniform(Uniform_t location, int v) {return glUniform1i(location, v);}

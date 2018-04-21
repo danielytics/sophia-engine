@@ -16,36 +16,7 @@ TileMap::~TileMap () {
 
 void TileMap::init (const std::vector<std::vector<float>>& map)
 {
-    tileShader = Shader::load(
-        // VERTEX SHADER
-        "#version 330 core"
-        "   layout(location = 0) in vec2 in_Position;"
-        "   layout(location = 1) in vec4 in_Color;"
-        "   layout(location = 2) in vec2 in_UV;"
-        "   layout(location = 3) in float in_Image;"
-        "	uniform mat4 u_projection;"
-        "	uniform mat4 u_view;"
-        "   out vec2 uv;"
-        "   out vec4 color;"
-        "   out float image;"
-        "   void main() {"
-        "     gl_Position =  u_projection * u_view * vec4(in_Position, 0.0, 1.0);"
-        "     color = in_Color;"
-        "     uv = in_UV;"
-        "     image = in_Image;"
-        "   }",
-
-        // FRAGMENT SHADER
-        "   #version 330 core"
-        "   in vec4 color;"
-        "   out vec4 fragColor;"
-        "   in vec2 uv;"
-        "   in float image;"
-        "   uniform sampler2DArray u_texture;"
-        "   void main(void) {"
-        "   fragColor = texture(u_texture, vec3(uv, image)).rgba * color;"
-        "   }");
-
+    tileShader = Shader::load("data/shaders/tiles.vert", "data/shaders/tiles.frag");
     mesh = Mesh{};
     auto vertices = std::vector<glm::vec2>{};
     auto colours =  std::vector<glm::vec4>{};

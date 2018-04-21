@@ -30,7 +30,7 @@ typedef std::chrono::duration<Time_t> Time;
 
  const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
-Renderable::~Renderable() {}
+ Renderable::~Renderable() {}
 
 GLuint loadTexture (const std::string& filename)
 {
@@ -89,7 +89,6 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
     return texture;
 }
 
-#include <fstream>
 #include "graphics/shader.h"
 
 struct Test {
@@ -102,14 +101,6 @@ struct Test {
      GLuint backdrop_vbo;
      GLuint depthMapFBO;
      GLuint depthMap;
-};
-
-Shader_t loadShaders(const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
-    std::ifstream vertexShaderFile { vertexShaderFilename };
-    std::string vertexShaderSource { std::istreambuf_iterator<char>(vertexShaderFile), std::istreambuf_iterator<char>() };
-    std::ifstream fragmentShaderFile { fragmentShaderFilename };
-    std::string fragmentShaderSource { std::istreambuf_iterator<char>(fragmentShaderFile), std::istreambuf_iterator<char>() };
-    return Shader::load(vertexShaderSource, fragmentShaderSource);
 }
 
 Test setupTest() {
@@ -209,9 +200,9 @@ Test setupTest() {
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     return {
-        loadShaders("data/shaders/lighting.vert", "data/shaders/lighting.frag"),
-        loadShaders("data/shaders/lighting.vert", "data/shaders/lamp.frag"),
-        loadShaders("data/shaders/shadowmap.vert", "data/shaders/shadowmap.frag"),
+        Shader::load("data/shaders/lighting.vert", "data/shaders/lighting.frag"),
+        Shader::load("data/shaders/lighting.vert", "data/shaders/lamp.frag"),
+        Shader::load("data/shaders/shadowmap.vert", "data/shaders/shadowmap.frag"),
         lightVAO,
         vbo,
         backdropVAO,
@@ -679,3 +670,21 @@ void Window::run ()
 
     info("Average framerate: {} fps", (frames.get() / std::chrono::duration_cast<Time>(current_time - start_time).count()));
 }
+
+typedef unsigned Handle_t;
+
+struct Background
+{
+    Handle_t image;
+    glm::vec3 position;
+    glm::vec3 transformation; // x: rotation, y: scale
+};
+struct Foreground
+{
+
+};
+
+void render () {
+
+}
+
