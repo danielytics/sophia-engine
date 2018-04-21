@@ -1,15 +1,16 @@
 
-#include "window/window.h"
-#include "util/logging.h"
-#include "util/telemetry.h"
-#include "util/config.h"
+#include "window/Window.h"
+#include "util/Logging.h"
+#include "util/Telemetry.h"
+#include "util/Config.h"
+#include "util/Helpers.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "util/stb_image.h"
 
-#include "graphics/shader.h"
-#include "graphics/tilemap.h"
-#include "graphics/spritepool.h"
+#include "graphics/Shader.h"
+#include "graphics/TileMap.h"
+#include "graphics/SpritePool.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -89,7 +90,7 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
     return texture;
 }
 
-#include "graphics/shader.h"
+#include "graphics/Shader.h"
 
 struct Test {
      Shader_t shader;
@@ -105,8 +106,8 @@ struct Test {
 
 Test setupTest() {
 
-    GLuint lightVAO;
-    GLuint vbo;
+    Buffer_t lightVAO;
+    Buffer_t vbo;
     glGenVertexArrays(1, &lightVAO);
     glBindVertexArray(lightVAO);
     glGenBuffers(1, &vbo);
@@ -170,8 +171,8 @@ Test setupTest() {
         -0.5f,  0.5f,  0.0f,  0.0f,  0.0f, 1.0f,
         -0.5f, -0.5f,  0.0f,  0.0f,  0.0f, 1.0f
     };
-    GLuint backdropVAO;
-    GLuint backdropVBO;
+    Buffer_t backdropVAO;
+    Buffer_t backdropVBO;
     glGenVertexArrays(1, &backdropVAO);
     glBindVertexArray(backdropVAO);
     glGenBuffers(1, &backdropVBO);
@@ -183,9 +184,9 @@ Test setupTest() {
     glEnableVertexAttribArray(1);
 
     // Shadow mapping
-    GLuint depthMapFBO;
+    Buffer_t depthMapFBO;
     glGenFramebuffers(1, &depthMapFBO);
-    GLuint depthMap;
+    Buffer_t depthMap;
     glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_WIDTH, SHADOW_HEIGHT, 0, GL_DEPTH_COMPONENT, GL_FLOAT, nullptr);
@@ -347,6 +348,7 @@ void Window::run ()
     auto previous_time = start_time;
     auto current_time = start_time;
     auto frames = Telemetry::Counter{"frames"};
+    auto currentFrameTime = Telemetry::Gauge("current-frame-time");
 
     TileMap tileMap;
     tileMap.init(std::vector<std::vector<float>>{
@@ -408,7 +410,7 @@ void Window::run ()
     test.shader.bindUnfiromBlock("Matrices", 0);
     test.shadows.bindUnfiromBlock("Matrices", 0);
 
-    GLuint matrices_ubo;
+    Buffer_t matrices_ubo;
     glGenBuffers(1, &matrices_ubo);
     glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
     glBufferData(GL_UNIFORM_BUFFER, 2 * sizeof(glm::mat4), nullptr, GL_STATIC_DRAW);
@@ -654,6 +656,7 @@ void Window::run ()
         previous_time = current_time;
         current_time = Clock::now();
         frame_time = std::chrono::duration_cast<Time>(current_time - previous_time).count();
+        currentFrameTime.set(frame_time);
         frames.inc();
         trace("Frame {} ended after {:1.6f} seconds", frames.get(), frame_time);
     } while (running);
@@ -670,21 +673,3 @@ void Window::run ()
 
     info("Average framerate: {} fps", (frames.get() / std::chrono::duration_cast<Time>(current_time - start_time).count()));
 }
-
-typedef unsigned Handle_t;
-
-struct Background
-{
-    Handle_t image;
-    glm::vec3 position;
-    glm::vec3 transformation; // x: rotation, y: scale
-};
-struct Foreground
-{
-
-};
-
-void render () {
-
-}
-

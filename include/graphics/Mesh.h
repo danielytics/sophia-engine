@@ -13,6 +13,8 @@
 #include <glm/glm.hpp>
 #include <vector>
 
+#include "shader.h"
+
 template <typename T>
 struct VBOComponents {
    enum {NumComponents = 0};
@@ -55,7 +57,7 @@ public:
     template <typename T>
     unsigned addBuffer (const std::vector<T>& data, bool vertices=false) {
         GLuint id = vbos.size();
-        GLuint vbo;
+        Buffer_t vbo;
         // Create and bind the new buffer
         glGenBuffers(1, &vbo);
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
@@ -74,7 +76,7 @@ public:
 
     template <typename T>
     void setBuffer (unsigned id, const std::vector<T>& data) {
-        GLuint vbo = vbos[id];
+        Buffer_t vbo = vbos[id];
         glBindBuffer(GL_ARRAY_BUFFER, vbo);
         // Copy the vertex data to the buffer
         auto vertexData = reinterpret_cast<const float*>(data.data());
@@ -117,10 +119,10 @@ public:
     }
 
 private:
-    GLuint count;
-    GLuint vao;
-    GLuint ibo;
-    std::vector<GLuint> vbos;
+    GLsizei count;
+    Buffer_t vao;
+    Buffer_t ibo;
+    std::vector<Buffer_t> vbos;
 };
 
 #endif // MESH_H

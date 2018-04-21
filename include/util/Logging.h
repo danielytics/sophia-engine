@@ -2,7 +2,7 @@
 #define LOGGING_H
 
 #include <spdlog/spdlog.h>
-#include "util/config.h"
+#include "util/Config.h"
 
 namespace Logging {
     void init (const YAML::Node&);

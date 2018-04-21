@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 typedef GLint Uniform_t;
+typedef GLuint Buffer_t;
 
 namespace Shader {
     struct Shader {

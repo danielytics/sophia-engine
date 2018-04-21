@@ -9,7 +9,7 @@
 
 #include <glm/glm.hpp>
 
-#include "util/config.h"
+#include "util/Config.h"
 
 #include <string>
 

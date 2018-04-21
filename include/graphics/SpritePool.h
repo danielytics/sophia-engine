@@ -24,8 +24,8 @@ public:
 private:
     Mesh mesh;
     Shader_t spriteShader;
-    GLuint tbo;
-    GLuint tbo_tex;
+    Buffer_t tbo;
+    Buffer_t tbo_tex;
     Uniform_t u_tbo_tex;
     Uniform_t u_texture;
     Uniform_t u_projection;
