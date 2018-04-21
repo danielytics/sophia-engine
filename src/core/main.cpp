@@ -7,10 +7,10 @@
 
 #include <iostream>
 
-#include "window/window.h"
-#include "util/telemetry.h"
-#include "util/config.h"
-#include "util/logging.h"
+#include "window/Window.h"
+#include "util/Telemetry.h"
+#include "util/Config.h"
+#include "util/Logging.h"
 
 int main(int argc, char *argv[])
 {

@@ -1,6 +1,6 @@
 
-#include "util/config.h"
-#include "util/logging.h"
+#include "util/Config.h"
+#include "util/Logging.h"
 
 #include <iostream>
 

@@ -59,25 +59,31 @@ DISTFILES += \
     data/shaders/sprites.frag \
     data/shaders/tiles.frag \
     data/shaders/sprites.vert \
-    data/shaders/tiles.vert
+    data/shaders/tiles.vert \
+    data/shaders/gbuffer.frag \
+    data/shaders/gbuffer.vert \
+    data/shaders/pbr.frag
 
 SOURCES += src/core/main.cpp \
-    src/util/telemetry.cpp \
-    src/util/config.cpp \
-    src/util/logging.cpp \
-    src/window/window.cpp \
-    src/graphics/shader.cpp \
-    src/graphics/tilemap.cpp \
-    src/graphics/spritepool.cpp
+    src/graphics/DeferredRenderer.cpp \
+    src/graphics/Shader.cpp \
+    src/graphics/SpritePool.cpp \
+    src/graphics/TileMap.cpp \
+    src/util/Telemetry.cpp \
+    src/util/Logging.cpp \
+    src/util/Config.cpp \
+    src/window/Window.cpp
 
 HEADERS += \
-    include/util/telemetry.h \
-    include/util/config.h \
-    include/util/logging.h \
-    include/window/window.h \
-    include/graphics/shader.h \
     include/util/stb_image.h \
-    include/graphics/tilemap.h \
-    include/graphics/mesh.h \
-    include/graphics/renderable.h \
-    include/graphics/spritepool.h
+    include/graphics/DeferredRenderer.h \
+    include/graphics/Mesh.h \
+    include/graphics/Renderable.h \
+    include/graphics/Shader.h \
+    include/graphics/SpritePool.h \
+    include/graphics/TileMap.h \
+    include/util/Config.h \
+    include/util/Helpers.h \
+    include/util/Logging.h \
+    include/util/Telemetry.h \
+    include/window/Window.h
