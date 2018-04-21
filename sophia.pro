@@ -55,7 +55,11 @@ DISTFILES += \
     data/shaders/lighting.frag \
     data/shaders/lighting.vert \
     data/shaders/shadowmap.frag \
-    data/shaders/shadowmap.vert
+    data/shaders/shadowmap.vert \
+    data/shaders/sprites.frag \
+    data/shaders/tiles.frag \
+    data/shaders/sprites.vert \
+    data/shaders/tiles.vert
 
 SOURCES += src/core/main.cpp \
     src/util/telemetry.cpp \

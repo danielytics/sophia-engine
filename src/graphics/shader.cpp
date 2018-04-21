@@ -2,6 +2,8 @@
 #include "graphics/shader.h"
 #include "util/logging.h"
 
+#include <fstream>
+
 GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::string& shaderSource)
 {
     GLuint program = glCreateShader(programType);
@@ -38,7 +40,7 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
     return program;
 }
 
-Shader::Shader Shader::load (const std::string& vertexShader, const std::string& fragmentShader)
+Shader::Shader createShader (const std::string& vertexShader, const std::string& fragmentShader)
 {
     GLuint shaderProgram = glCreateProgram();
     glBindAttribLocation(shaderProgram, 0, "in_Position");
@@ -70,6 +72,15 @@ Shader::Shader Shader::load (const std::string& vertexShader, const std::string&
 
     return {shaderProgram, vertexProgram, fragmentProgram};
 }
+
+Shader::Shader Shader::load (const std::string& vertexShaderFilename, const std::string& fragmentShaderFilename) {
+    std::ifstream vertexShaderFile { vertexShaderFilename };
+    std::string vertexShaderSource { std::istreambuf_iterator<char>(vertexShaderFile), std::istreambuf_iterator<char>() };
+    std::ifstream fragmentShaderFile { fragmentShaderFilename };
+    std::string fragmentShaderSource { std::istreambuf_iterator<char>(fragmentShaderFile), std::istreambuf_iterator<char>() };
+    return createShader(vertexShaderSource, fragmentShaderSource);
+}
+
 
 void Shader::Shader::unload () const
 {
