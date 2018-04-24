@@ -8,6 +8,9 @@ out VertexData {
 	vec3 normal;
 	vec3 position;
 	vec2 textureCoords;
+	// MODE_SPRITES
+	int image;
+	vec4 color;
 } vertex;
 
 layout (std140) uniform Matrices
@@ -19,11 +22,36 @@ layout (std140) uniform Matrices
 uniform mat4 model;
 uniform mat3 normal;
 
+// renderMode values.
+const int MODE_BACKGROUNDS = 0;
+const int MODE_BAKED_LIGHTING = 1;
+const int MODE_3D_GEOMETRY = 2;
+const int MODE_TILES = 3;
+const int MODE_SPRITES = 4;
+uniform int renderMode; // Same for all fragments in draw call, so conditionals should be fast
+
+// MODE_SPRITES
+uniform samplerBuffer u_tbo_tex;
+
 void main()
 {
-	vec3 vm_position = view * model * vec4(in_position, 1.0);
-	gl_Position = projection * vm_position;
-	vertex.position = vec3(vm_position);
-	vertex.normal = normal * in_normal;
-	vertex.textureCoords = in_uv;
+	vec3 vm_position;
+
+	switch (renderMode) {
+	case MODE_SPRITES:
+		int offset = gl_InstanceID * 3;
+		float x  = texelFetch(u_tbo_tex, offset + 0).r;
+		float y  = texelFetch(u_tbo_tex, offset + 1).r;
+		vertex.image = texelFetch(u_tbo_tex, offset + 2).r;
+		vm_position = view * vec4(in_position.x + x, in_position.y + y, 0.0, 1.0);
+		break;
+	default:
+		vm_position = view * model * vec4(in_position, 1.0);
+		vertex.normal = normal * in_normal;
+		vertex.textureCoords = in_uv;
+		gl_Position = projection * vm_position;
+		break;
+	}
+	vertex.position = vertex.position = vec3(vm_position);;
+	gl_Position = u_projection * vm_position;
 }
