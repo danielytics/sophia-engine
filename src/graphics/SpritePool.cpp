@@ -1,16 +1,16 @@
 
-#include "graphics/spritepool.h"
-#include "util/logging.h"
+#include "graphics/SpritePool.h"
+#include "util/Logging.h"
 
 using Shader_t = Shader::Shader;
 
 SpritePool::~SpritePool () {
-    spriteShader.unload();
+//    spriteShader.unload();
 }
 
-void SpritePool::init (unsigned numSprites)
+void SpritePool::init (const Shader_t& spriteShader)
 {
-    spriteShader = Shader::load("data/shaders/sprites.vert", "data/shaders/sprites.frag");
+//    spriteShader = Shader::load("data/shaders/sprites.vert", "data/shaders/sprites.frag");
     mesh = Mesh{};
     mesh.addBuffer(std::vector<glm::vec3>{
             {-0.5f, 0.5f, 0.5f},
@@ -33,23 +33,23 @@ void SpritePool::init (unsigned numSprites)
     glBindBuffer(GL_TEXTURE_BUFFER, tbo);
     glGenTextures(1, &tbo_tex);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
-    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * numSprites, 0, GL_STREAM_DRAW);
+    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3), 0, GL_STREAM_DRAW); // This will get replaced on the first update
 
-    u_tbo_tex = glGetUniformLocation(spriteShader.programID, "u_tbo_tex");
-    u_projection = glGetUniformLocation(spriteShader.programID, "u_projection");
-    u_view = glGetUniformLocation(spriteShader.programID, "u_view");
-    u_texture = glGetUniformLocation(spriteShader.programID, "u_texture");
+    u_tbo_tex = spriteShader.uniform("u_tbo_tex");
+    u_texture = spriteShader.uniform("u_texture");
 
-    spriteCount = numSprites;
+    spriteCount = 0;
 }
 
 void SpritePool::update (const std::vector<Sprite>& sprites)
 {
     if (spriteCount != sprites.size()) {
-        warn("SpritePool inited for {} sprites but {} sprites updated", spriteCount, sprites.size());
-        spriteCount = sprites.size();
+        if (spriteCount != 0) { // If this isn't the first update, then warn that the size has changed
+            warn("SpritePool inited for {} sprites but {} sprites updated", spriteCount, sprites.size());
+        }
+        spriteCount = unsigned(sprites.size());
     }
-    glActiveTexture(GL_TEXTURE0 + 1);
+    glActiveTexture(GL_TEXTURE0 + 5);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
     // Orphan old buffer and then load data into new buffer
     glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteCount, 0, GL_STREAM_DRAW);
@@ -60,7 +60,7 @@ void SpritePool::update (const std::vector<Sprite>& sprites)
 void SpritePool::render (const Rect& bounds)
 {
     trace("Rendering {} sprites", spriteCount);
-    glUniform1i(u_texture, 0);
-    glUniform1i(u_tbo_tex, 1);
+    Shader::setUniform(u_texture, 0);
+    Shader::setUniform(u_tbo_tex, 5);
     mesh.draw(spriteCount);
 }

@@ -1,4 +1,4 @@
-#include "util/telemetry.h"
+#include "util/Telemetry.h"
 
 Telemetry::Counter_c::Counter_c (const std::string& name) : id(make_or_get(name))
 {

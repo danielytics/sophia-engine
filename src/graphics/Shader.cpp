@@ -1,6 +1,6 @@
 
-#include "graphics/shader.h"
-#include "util/logging.h"
+#include "graphics/Shader.h"
+#include "util/Logging.h"
 
 #include <fstream>
 
