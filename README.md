@@ -3,6 +3,8 @@
 
 The Sophia Game Engine is a 2D-first game engine written in C++14.
 
+Development is happening in branches.
+
 # Design Goals
 
 Sophia is being designed for 2D games (side-scroller and top-down, no plans for isometric for now), but unlike many other 2D game engines, Sophia is designed with the expectation that sometimes games may want 3D background, 3D character models or 3D physics (top-down with jumping/stacking is a major use-case).
