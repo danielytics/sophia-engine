@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
     Logging::init(config);
 
     {
-        Window window("Bento");
+        Window window("Sophia");
         window.open(config);
 
         // Destroy the YAML configuration data

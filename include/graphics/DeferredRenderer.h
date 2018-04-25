@@ -2,11 +2,12 @@
 #define DEFERREDRENDERER_H
 
 #include "Renderable.h"
+#include "SpritePool.h"
 
 class DeferredRenderer
 {
 public:
-    explicit DeferredRenderer();
+    explicit DeferredRenderer(bool enabledDebugRendering=false);
     ~DeferredRenderer();
 
     void init (float width, float height, bool softInitialise=false);
@@ -17,11 +18,21 @@ public:
 
     inline const glm::mat4& projection () const { return projection_matrix; }
 
+    // Renderables
+    inline void updateSprites (const std::vector<Sprite>& sprites) {
+        spritePool.update(sprites);
+    }
+
 private:
+    bool debugRenderingEnabled;
+
     Shader_t gbufferShader;
     Shader_t pbrLightingShader;
     Shader_t particlesShader;
     Shader_t transparencyShader;
+
+    Shader_t debugShader;
+    Uniform_t u_debugTexture;
 
     GLsizei screenWidth;
     GLsizei screenHeight;
@@ -39,9 +50,12 @@ private:
     // Uniforms
     Uniform_t u_gbuffer_rendermode;
 
-    //
-    unsigned int quadVAO;
-    unsigned int quadVBO;
+    // Used to render fullscreen quads
+    Buffer_t quadVAO;
+    Buffer_t quadVBO;
+
+    // Renderables
+    SpritePool spritePool;
 };
 
 #endif // DEFERREDRENDERER_H
