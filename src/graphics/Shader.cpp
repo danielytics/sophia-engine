@@ -4,7 +4,7 @@
 
 #include <fstream>
 
-GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::string& shaderSource)
+GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::string& filename, const std::string& shaderSource)
 {
     GLuint program = glCreateShader(programType);
 
@@ -27,7 +27,7 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
         char* shaderInfoLog = new char[maxLength];
         glGetShaderInfoLog(program, maxLength, &maxLength, shaderInfoLog );
 
-        warn("Failed to compile shader: {}", shaderInfoLog);
+        error("Failed to compile shader:{}\n{}", filename, shaderInfoLog);
 
         delete [] shaderInfoLog;
 
@@ -40,15 +40,13 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
     return program;
 }
 
-Shader::Shader createShader (const std::string& vertexShader, const std::string& fragmentShader)
+Shader::Shader createShader (const std::string& vertexShaderFilename, const std::string& vertexShader, const std::string& fragmentShaderFilename, const std::string& fragmentShader)
 {
     GLuint shaderProgram = glCreateProgram();
-    glBindAttribLocation(shaderProgram, 0, "in_Position");
-    glBindAttribLocation(shaderProgram, 1, "in_Color");
 
     // Compile shader programs
-    GLuint vertexProgram = compileAndAttach(shaderProgram, GL_VERTEX_SHADER, vertexShader);
-    GLuint fragmentProgram = compileAndAttach(shaderProgram, GL_FRAGMENT_SHADER, fragmentShader);
+    GLuint vertexProgram = compileAndAttach(shaderProgram, GL_VERTEX_SHADER, vertexShaderFilename, vertexShader);
+    GLuint fragmentProgram = compileAndAttach(shaderProgram, GL_FRAGMENT_SHADER, fragmentShaderFilename, fragmentShader);
 
     // Link the shader programs into one
     glLinkProgram(shaderProgram);
@@ -63,7 +61,7 @@ Shader::Shader createShader (const std::string& vertexShader, const std::string&
         char* shaderProgramInfoLog = new char[maxLength];
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, shaderProgramInfoLog);
 
-        warn("Shader linking failed: {}", shaderProgramInfoLog);
+        error("Linking shaders {} and {} failed.\n{}", vertexShaderFilename, fragmentShaderFilename, shaderProgramInfoLog);
 
         delete [] shaderProgramInfoLog;
 
@@ -78,7 +76,7 @@ Shader::Shader Shader::load (const std::string& vertexShaderFilename, const std:
     std::string vertexShaderSource { std::istreambuf_iterator<char>(vertexShaderFile), std::istreambuf_iterator<char>() };
     std::ifstream fragmentShaderFile { fragmentShaderFilename };
     std::string fragmentShaderSource { std::istreambuf_iterator<char>(fragmentShaderFile), std::istreambuf_iterator<char>() };
-    return createShader(vertexShaderSource, fragmentShaderSource);
+    return createShader(vertexShaderFilename, vertexShaderSource, fragmentShaderFilename, fragmentShaderSource);
 }
 
 

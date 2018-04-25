@@ -4,7 +4,7 @@ in VertexData {
 	vec3 normal;
 	vec2 textureCoords;
 	// MODE_SPRITES
-	int image;
+	flat int image;
 	vec4 color;
 } fragment;
 
@@ -30,12 +30,12 @@ void main()
 	// store the fragment position vector in the first gbuffer texture
 	gBufferPosition = fragment.position;
 	// also store the per-fragment normals into the gbuffer
-	gNormal = normalize(fragment.normal);
+	gBufferNormal = normalize(fragment.normal);
 
 	switch (renderMode) {
 	case MODE_SPRITES:
 		// and the diffuse per-fragment color
-		gBufferAlbedo.rgb = exture(u_texture, vec3(fragment.textureCoords, fragment.image)).rgb;
+		gBufferAlbedo.rgb = texture(u_texture, vec3(fragment.textureCoords, fragment.image)).rgb;
 		// store specular intensity in gBufferAlbedo's alpha component
 		gBufferAlbedo.a = 0;
 		break;

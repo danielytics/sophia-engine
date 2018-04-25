@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include <vector>
 
-#include "shader.h"
+#include "Shader.h"
 
 template <typename T>
 struct VBOComponents {
@@ -56,7 +56,7 @@ public:
 
     template <typename T>
     unsigned addBuffer (const std::vector<T>& data, bool vertices=false) {
-        GLuint id = vbos.size();
+        GLuint id = GLuint(vbos.size());
         Buffer_t vbo;
         // Create and bind the new buffer
         glGenBuffers(1, &vbo);
@@ -92,7 +92,7 @@ public:
     }
 
     unsigned addIndexBuffer () {
-        GLuint id = vbos.size();
+        GLuint id = GLuint(vbos.size());
         glGenBuffers(1, &ibo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
         vbos.push_back(ibo);
@@ -113,9 +113,9 @@ public:
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
         auto indexData = reinterpret_cast<const GLushort*>(indices.data());
         auto size = indices.size() * sizeof(GLushort);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, nullptr, GL_STREAM_DRAW);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indexData, GL_STREAM_DRAW);
-        glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_SHORT, 0);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, nullptr, GL_STREAM_DRAW); // Orphan old buffer
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, size, indexData, GL_STREAM_DRAW); // Upload new buffer
+        glDrawElements(GL_TRIANGLES, GLsizei(indices.size()), GL_UNSIGNED_SHORT, nullptr);
     }
 
 private:
