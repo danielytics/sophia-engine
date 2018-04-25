@@ -1,5 +1,6 @@
 
 #include "graphics/TileMap.h"
+#include "graphics/Debug.h"
 #include "util/Logging.h"
 
 #include <glm/gtc/type_ptr.hpp>
@@ -17,7 +18,6 @@ TileMap::~TileMap () {
 void TileMap::init (const std::vector<std::vector<float>>& map)
 {
     tileShader = Shader::load("data/shaders/tiles.vert", "data/shaders/tiles.frag");
-    mesh = Mesh{};
     auto vertices = std::vector<glm::vec2>{};
     auto colours =  std::vector<glm::vec4>{};
     auto texcoords = std::vector<glm::vec2>{};
@@ -52,6 +52,7 @@ void TileMap::init (const std::vector<std::vector<float>>& map)
         y -= 1.0f;
     }
     // Upload grid data to VBO
+    mesh.bind();
     mesh.addBuffer(vertices, true);
     mesh.addBuffer(colours);
     mesh.addBuffer(texcoords);

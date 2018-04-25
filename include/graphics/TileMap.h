@@ -1,8 +1,8 @@
 #ifndef TILEMAP_H
 #define TILEMAP_H
 
-#include "renderable.h"
-#include "mesh.h"
+#include "Renderable.h"
+#include "Mesh.h"
 
 class TileMap : public Renderable {
 public:

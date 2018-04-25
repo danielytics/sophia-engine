@@ -63,7 +63,9 @@ DISTFILES += \
     data/shaders/gbuffer.frag \
     data/shaders/gbuffer.vert \
     data/shaders/pbr.frag \
-    data/shaders/deferredlighting.vert
+    data/shaders/deferredlighting.vert \
+    data/shaders/debug.frag \
+    data/shaders/debug.vert
 
 SOURCES += src/core/main.cpp \
     src/graphics/DeferredRenderer.cpp \
@@ -87,4 +89,5 @@ HEADERS += \
     include/util/Helpers.h \
     include/util/Logging.h \
     include/util/Telemetry.h \
-    include/window/Window.h
+    include/window/Window.h \
+    include/graphics/Debug.h

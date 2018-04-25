@@ -20,13 +20,10 @@ public:
 
 private:
     Mesh mesh;
-//    Shader_t spriteShader;
     Buffer_t tbo;
     Buffer_t tbo_tex;
     Uniform_t u_tbo_tex;
     Uniform_t u_texture;
-//    Uniform_t u_projection;
-//    Uniform_t u_view;
 
     unsigned spriteCount;
 };

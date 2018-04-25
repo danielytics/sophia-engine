@@ -14,6 +14,7 @@
 #include <vector>
 
 #include "Shader.h"
+#include "Debug.h"
 
 template <typename T>
 struct VBOComponents {
@@ -45,13 +46,16 @@ class Mesh
 public:
     Mesh () {
         glGenVertexArrays(1, &vao);
-        glBindVertexArray(vao);
     }
     ~Mesh () {
         glDeleteVertexArrays(1, &vao);
         for (auto vbo : vbos) {
             glDeleteBuffers(1, &vbo);
         }
+    }
+
+    inline void bind() {
+        glBindVertexArray(vao);
     }
 
     template <typename T>
@@ -105,7 +109,9 @@ public:
     }
     inline void draw (unsigned int instances) {
         glBindVertexArray(vao);
+        checkErrors();
         glDrawArraysInstanced(GL_TRIANGLES, 0, count, instances);
+        checkErrors();
     }
     inline void drawIndexed (const std::vector<GLushort>& indices)
     {

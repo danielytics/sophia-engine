@@ -12,6 +12,7 @@
 #include "graphics/TileMap.h"
 #include "graphics/SpritePool.h"
 #include "graphics/DeferredRenderer.h"
+#include "graphics/Debug.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -92,6 +93,38 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
 }
 
 #include "graphics/Shader.h"
+
+enum SceneNodeType {
+    NODETYPE_CONTAINER = 0,
+    NODETYPE_SPRITE
+};
+struct SpriteNode {
+
+};
+struct SceneNode {
+    SceneNodeType type;
+    union {
+        SpriteNode* sprite;
+    };
+    SceneNode* parent;
+    SceneNode* next; // next child of parent
+    SceneNode* firstChild; // first child of this node
+};
+
+class SceneTree
+{
+public:
+    SceneTree() {
+        root = nullptr;
+    }
+    ~SceneTree() {
+    }
+
+private:
+    SceneNode* root;
+    std::vector<SceneNode> nodes;
+    std::vector<SpriteNode> sprites;
+};
 
 struct Test {
      Shader_t shader;
@@ -316,6 +349,7 @@ void Window::open (const YAML::Node& config_node)
 
     // Create OpenGL rendering context
     context = SDL_GL_CreateContext(window);
+    info("Created window with OpenGL {}", glGetString(GL_VERSION));
 
     width = static_cast<float>(config.resolution.width);
     height = static_cast<float>(config.resolution.height);
@@ -387,7 +421,7 @@ void Window::run ()
     glm::vec3 camera = glm::vec3(0.0f, 0.0f, 10.0f);
     glm::vec3 Up = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    glActiveTexture(GL_TEXTURE0 + 0);
+    glActiveTexture(GL_TEXTURE0+5);
     GLuint texture = loadTextureArray(std::vector<std::string>{
         "data/TEXTURES/G000M801.BMP",
         "data/TEXTURES/S5G0I800.BMP",
@@ -441,8 +475,12 @@ void Window::run ()
 //    Uniform_t u_shadow_model = test.shadows.uniform("model");
 //    Uniform_t u_lightspace = test.shadows.uniform("lightSpaceMatrix");
 
-    DeferredRenderer renderer;
+    DeferredRenderer renderer(true);
+    checkErrors();
     renderer.init(width, height);
+    checkErrors();
+
+    renderer.updateSprites(spriteData);
 
     // Run the main processing loop
     do {
@@ -524,17 +562,12 @@ void Window::run ()
             glm::unProject(glm::vec3(viewport.z, viewport.w, 1.0f), view, projection, viewport),
         };
 
-        info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
+//        info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
+//        info();
 //        sprites.update(spriteData);
 
         // Render the scene
         renderer.render(screenBounds, view);
-
-        // Clear screen
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        info();
 
 //        glm::vec3 lightPos0(20.0f, 0.0f, 3.0f);
 //        glm::vec3 lightPos1(-20.0f, 5.0f, 5.0f);
