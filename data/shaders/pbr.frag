@@ -1,7 +1,7 @@
 #version 330 core
 out vec4 FragColor;
 
-in vec2 TexCoords;
+in vec2 texCoordinates;
 
 uniform sampler2D gPosition;
 uniform sampler2D gNormal;
@@ -18,19 +18,19 @@ uniform vec3 viewPos;
 void main()
 {
 	// retrieve data from G-buffer
-	vec3 FragPos = texture(gPosition, TexCoords).rgb;
-	vec3 Normal = texture(gNormal, TexCoords).rgb;
-	vec3 Albedo = texture(gAlbedoSpec, TexCoords).rgb;
-	float Specular = texture(gAlbedoSpec, TexCoords).a;
+	vec3 fragPos = texture(gPosition, texCoordinates).rgb;
+	vec3 normal = texture(gNormal, texCoordinates).rgb;
+	vec3 albedo = texture(gAlbedoSpec, texCoordinates).rgb;
+	float specular = texture(gAlbedoSpec, texCoordinates).a;
 
 	// then calculate lighting as usual
-	vec3 lighting = Albedo * 0.1; // hard-coded ambient component
-	vec3 viewDir = normalize(viewPos - FragPos);
+	vec3 lighting = albedo * 0.1; // hard-coded ambient component
+	vec3 viewDir = normalize(viewPos - fragPos);
 	for(int i = 0; i < NR_LIGHTS; ++i)
 	{
 		// diffuse
-		vec3 lightDir = normalize(lights[i].Position - FragPos);
-		vec3 diffuse = max(dot(Normal, lightDir), 0.0) * Albedo * lights[i].Color;
+		vec3 lightDir = normalize(lights[i].Position - fragPos);
+		vec3 diffuse = max(dot(normal, lightDir), 0.0) * albedo * lights[i].Color;
 		lighting += diffuse;
 	}
 

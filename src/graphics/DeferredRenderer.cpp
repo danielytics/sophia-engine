@@ -22,7 +22,7 @@ void DeferredRenderer::init (float width, float height, bool softInitialise)
 
     if (! softInitialise) {
         gbufferShader = Shader::load("data/shaders/gbuffer.vert", "data/shaders/gbuffer.frag");
-        pbrLightingShader = Shader::load("data/shaders/passthrough.vert", "data/shaders/pbr.frag");
+        pbrLightingShader = Shader::load("data/shaders/deferredlighting.vert", "data/shaders/pbr.frag");
 
         // Retrieve uniform locations
         u_gbuffer_rendermode = gbufferShader.uniform("renderMode");

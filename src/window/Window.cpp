@@ -93,8 +93,6 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
 
 #include "graphics/Shader.h"
 
-
-
 struct Test {
      Shader_t shader;
      Shader_t lamp;
