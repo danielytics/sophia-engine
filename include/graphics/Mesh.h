@@ -110,7 +110,7 @@ public:
     inline void draw (unsigned int instances) {
         glBindVertexArray(vao);
         checkErrors();
-        glDrawArraysInstanced(GL_TRIANGLES, 0, count, instances);
+        glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, count, instances);
         checkErrors();
     }
     inline void drawIndexed (const std::vector<GLushort>& indices)

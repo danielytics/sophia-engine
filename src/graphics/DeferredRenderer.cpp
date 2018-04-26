@@ -33,15 +33,19 @@ void DeferredRenderer::init (float width, float height, bool softInitialise)
     screenHeight = GLsizei(height);
 
     if (! softInitialise) {
-        gbufferShader = Shader::load("data/shaders/gbuffer.vert", "data/shaders/gbuffer.frag");
+        gbufferSpriteShader = Shader::load("data/shaders/sprites.vert", "data/shaders/sprites.frag");
         pbrLightingShader = Shader::load("data/shaders/deferredlighting.vert", "data/shaders/pbr.frag");
+        gbufferBackgroundShader = Shader::load("data/shaders/background.vert", "data/shaders/background.frag");
+
+        u_texture = gbufferBackgroundShader.uniform("u_texture");
 
         // Retrieve uniform locations
-        u_gbuffer_rendermode = gbufferShader.uniform("renderMode");
+//        u_gbuffer_rendermode = gbufferShader.uniform("renderMode");
 
         if (debugRenderingEnabled) {
             debugShader = Shader::load("data/shaders/debug.vert", "data/shaders/debug.frag");
             u_debugTexture = debugShader.uniform("debugTexture");
+            u_debugMode = debugShader.uniform("debugMode");
         }
 
         // Fullscreen quad
@@ -75,10 +79,11 @@ void DeferredRenderer::init (float width, float height, bool softInitialise)
         glBindBufferRange(GL_UNIFORM_BUFFER, 0, matrices_ubo, 0, 2 * sizeof(glm::mat4));
 
         // Connect shader UBO blocks to binding point 0
-        gbufferShader.bindUnfiromBlock("Matrices", 0);
+        gbufferSpriteShader.bindUnfiromBlock("Matrices", 0);
+        gbufferBackgroundShader.bindUnfiromBlock("Matrices", 0);
 
         // Setup renderables
-        spritePool.init(gbufferShader);
+        spritePool.init(gbufferSpriteShader);
     }
 
 
@@ -158,7 +163,7 @@ void DeferredRenderer::term (bool softTerminate)
 
     if (! softTerminate) {
         glDeleteVertexArrays(1, &quadVAO);
-        gbufferShader.unload();
+        gbufferSpriteShader.unload();
         pbrLightingShader.unload();
         if (debugRenderingEnabled) {
             debugShader.unload();
@@ -182,67 +187,69 @@ enum UberShaderMode {
 
 void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 {
+    glViewport(0, 0, screenWidth, screenHeight);
+
     // Load view into UBO
     glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
-    checkErrors();
     glBufferSubData(GL_UNIFORM_BUFFER, sizeof(glm::mat4), sizeof(glm::mat4), glm::value_ptr(view));
-    checkErrors();
     glBindBuffer(GL_UNIFORM_BUFFER, 0);
-    checkErrors();
 
     /// Render to g-buffer
 
     glBindFramebuffer(GL_FRAMEBUFFER, gBuffer);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     // Render solid stuff
     glDisable(GL_BLEND);
-    gbufferShader.use();
-    checkErrors();
 
     // Render 3D geometry
-    Shader::setUniform(u_gbuffer_rendermode, MODE_3D_GEOMETRY);
 
     // Render solid objects
-    Shader::setUniform(u_gbuffer_rendermode, MODE_TILES);
 
-    Shader::setUniform(u_gbuffer_rendermode, MODE_SPRITES);
+    gbufferSpriteShader.use();
     spritePool.render(screenBounds);
     checkErrors();
 
     // Render background images
-    Shader::setUniform(u_gbuffer_rendermode, MODE_BACKGROUNDS);
+    checkErrors();
+//    gbufferBackgroundShader.use();
+//    Shader::setUniform(u_texture, 5);
+//    glBindVertexArray(quadVAO);
+//    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+//    checkErrors();
+//    glBindVertexArray(0);
 
     // Render baked light and shodow maps
-    Shader::setUniform(u_gbuffer_rendermode, MODE_BAKED_LIGHTING);
 
     /// Render g-buffer to framebuffer
 
     // Bind g-buffer
+    pbrLightingShader.use();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    checkErrors();
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gBufferPosition);
+    Shader::setUniform(pbrLightingShader.uniform("gPosition"), 0);
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, gBufferNormal);
+    Shader::setUniform(pbrLightingShader.uniform("gNormal"), 1);
     glActiveTexture(GL_TEXTURE2);
     glBindTexture(GL_TEXTURE_2D, gBufferAlbedo);
-    checkErrors();
+    Shader::setUniform(pbrLightingShader.uniform("gAlbedoSpec"), 2);
 
-    pbrLightingShader.use();
     // TODO: set lights
 
     // Render fullscreen quad
     glBindVertexArray(quadVAO);
+    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    checkErrors();
     glBindVertexArray(0);
 
     // Copy depth buffer from gBuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBlitFramebuffer(0, 0, screenWidth, screenHeight, 0, 0, screenWidth, screenHeight, GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-    checkErrors();
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
     /// Now render transparent items
@@ -258,33 +265,35 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 
     if (debugRenderingEnabled) {
         /// Render debug information (render buffers to viewports)
+        glEnable(GL_SCISSOR_TEST);
+        glDisable(GL_DEPTH_TEST);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.0f);
+
         debugShader.use();
         Shader::setUniform(u_debugTexture, 0);
         glBindVertexArray(quadVAO);
         checkErrors();
 
-        // Render position g-buffer
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gBufferPosition);
-        glViewport(10, 10, 60, 60);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        // Render normal g-buffer
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, gBufferNormal);
-        glViewport(10, 70, 60, 130);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-        // Render albedo g-buffer
-        glActiveTexture(GL_TEXTURE0);
-        checkErrors();
-        glBindTexture(GL_TEXTURE_2D, gBufferAlbedo);
-        checkErrors();
-        glViewport(10, 140, 60, 200);
-        checkErrors();
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-        checkErrors();
+        // Render g-buffer
+        int width = screenWidth / 8;
+        int height = screenHeight / 8;
+        int x = screenWidth - (width + 10);
+        int y = screenHeight - (height + 10);
+        for (auto mode : {0, 1}) {
+            Shader::setUniform(u_debugMode, mode);
+            for (auto buffer : {gBufferPosition, gBufferNormal, gBufferAlbedo}) {
+                glActiveTexture(GL_TEXTURE0);
+                glBindTexture(GL_TEXTURE_2D, buffer);
+                glViewport(x, y, width, height);
+                glScissor(x - 2, y - 2, width + 4, height + 4);
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+                y -= height + 10;
+            }
+        }
 
         glBindVertexArray(0);
+        glDisable(GL_SCISSOR_TEST);
+        glEnable(GL_DEPTH_TEST);
     }
 }

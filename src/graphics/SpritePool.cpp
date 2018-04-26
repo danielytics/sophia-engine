@@ -12,23 +12,20 @@ void SpritePool::init (const Shader_t& spriteShader)
 {
     mesh.bind();
     mesh.addBuffer(std::vector<glm::vec3>{
-            {-0.5f, 0.5f, 0.5f},
-            { 0.5f, 0.5f, 0.5f},
-            { 0.5f,-0.5f, 0.5f},
-            { 0.5f,-0.5f, 0.5f},
-            {-0.5f,-0.5f, 0.5f},
-            {-0.5f, 0.5f, 0.5f},
+            {-1.0f,  1.0f, 0.0f},
+            {-1.0f, -1.0f, 0.0f},
+            {1.0f,  1.0f, 0.0f},
+            {1.0f, -1.0f, 0.0f}
         }, true);
     mesh.addBuffer(std::vector<glm::vec2>{
-            {0.0f, 0.0f},
-            {1.0f, 0.0f},
-            {1.0f, 1.0f},
-            {1.0f, 1.0f},
             {0.0f, 1.0f},
             {0.0f, 0.0f},
+            {1.0f, 1.0f},
+            {1.0f, 0.0f}
         });
 
     glGenBuffers(1, &tbo);
+    glActiveTexture(GL_TEXTURE0 + 6);
     glBindBuffer(GL_TEXTURE_BUFFER, tbo);
     glGenTextures(1, &tbo_tex);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
@@ -50,7 +47,7 @@ void SpritePool::update (const std::vector<Sprite>& sprites)
         }
         spriteCount = unsigned(sprites.size());
     }
-    glActiveTexture(GL_TEXTURE0 + 5);
+    glActiveTexture(GL_TEXTURE0 + 6);
     glBindBuffer(GL_TEXTURE_BUFFER, tbo);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
     // Orphan old buffer and then load data into new buffer
@@ -64,10 +61,8 @@ void SpritePool::update (const std::vector<Sprite>& sprites)
 void SpritePool::render (const Rect& bounds)
 {
     trace("Rendering {} sprites", spriteCount);
-    glActiveTexture(GL_TEXTURE0 + 0);
-    glActiveTexture(GL_TEXTURE0 + 5);
-    Shader::setUniform(u_texture, 0);
-    Shader::setUniform(u_tbo_tex, 5);
+    Shader::setUniform(u_texture, 5);
+    Shader::setUniform(u_tbo_tex, 6);
     checkErrors();
     mesh.draw(spriteCount);
 }
