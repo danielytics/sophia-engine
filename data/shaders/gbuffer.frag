@@ -5,7 +5,7 @@ in VertexData {
 	vec2 textureCoords;
 	// MODE_SPRITES
 	flat int image;
-	vec4 color;
+//	vec4 color;
 } fragment;
 
 layout (location = 0) out vec3 gBufferPosition;

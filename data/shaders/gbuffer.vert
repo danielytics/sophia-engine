@@ -10,7 +10,7 @@ out VertexData {
 	vec2 textureCoords;
 	// MODE_SPRITES
 	flat int image;
-	vec4 color;
+//	vec4 color;
 } vertex;
 
 layout (std140) uniform Matrices
@@ -47,10 +47,11 @@ void main()
 		break;
 	default:
 		vm_position = view * model * vec4(in_position, 1.0);
-		vertex.normal = normal * in_normal;
-		vertex.textureCoords = in_uv;
+		vertex.image = 0;
 		break;
 	}
-	vertex.position = vertex.position = vec3(vm_position);;
+	vertex.normal = normal * in_normal;
+	vertex.textureCoords = in_uv;
+	vertex.position = vec3(vm_position);;
 	gl_Position = projection * vm_position;
 }

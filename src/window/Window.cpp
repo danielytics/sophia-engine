@@ -412,8 +412,8 @@ void Window::run ()
     {
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_real_distribution<float> dist(0.0, 400.0);
-        for (unsigned i=0; i<1000000; ++i) {
+        std::uniform_real_distribution<float> dist(0.0, 50.0);
+        for (unsigned i=0; i<1000; ++i) {
             spriteData.push_back(Sprite{{dist(mt), dist(mt)}, 1});
         }
     }
@@ -564,7 +564,6 @@ void Window::run ()
 
 //        info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
 //        info();
-//        sprites.update(spriteData);
 
         // Render the scene
         renderer.render(screenBounds, view);

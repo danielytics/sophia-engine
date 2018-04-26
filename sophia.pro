@@ -65,7 +65,9 @@ DISTFILES += \
     data/shaders/pbr.frag \
     data/shaders/deferredlighting.vert \
     data/shaders/debug.frag \
-    data/shaders/debug.vert
+    data/shaders/debug.vert \
+    data/shaders/background.frag \
+    data/shaders/background.vert
 
 SOURCES += src/core/main.cpp \
     src/graphics/DeferredRenderer.cpp \
