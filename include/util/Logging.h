@@ -1,6 +1,7 @@
 #ifndef LOGGING_H
 #define LOGGING_H
 
+#include <exception>
 #include <spdlog/spdlog.h>
 #include "util/Config.h"
 
@@ -30,5 +31,7 @@ namespace Logging {
 #define info(...) _LOG_(info, __VA_ARGS__)
 #define warn(...) _LOG_(warn, __VA_ARGS__)
 #define error(...) _LOG_(error, __VA_ARGS__)
+
+#define fatal(...) {error(__VA_ARGS__); throw std::runtime_error("Unrecoverable error");}
 
 #endif // LOGGING_H

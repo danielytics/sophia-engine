@@ -2,12 +2,7 @@
 #define RENDERABLE_H
 
 #include "Shader.h"
-#include <glm/glm.hpp>
-
-struct Rect {
-    glm::vec3 top_left;
-    glm::vec3 bottom_right;
-};
+#include "math/Types.h"
 
 using Shader_t = Shader::Shader;
 

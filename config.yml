@@ -8,6 +8,8 @@ graphics:
     vsync: Yes
     # Should Full Screen Anti Aliasing be enabled? Valid values are: No, 2x, 4x, 8x, 16x
     fsaa: 4x
+    # Shuld debug rendering be enabled? Ignored in release builds
+    debug: Yes
 
 # Configure telemetry and logging. This is a development/debug feature that should probably be disabled for release.
 telemetry:

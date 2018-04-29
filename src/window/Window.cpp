@@ -289,6 +289,9 @@ void Window::open (const YAML::Node& config_node)
         int fsaa;
         bool vsync;
         bool fullscreen;
+#ifdef DEBUG_BUILD
+        bool debug;
+#endif
     } config;
     {
         std::vector<int> res;
@@ -297,6 +300,9 @@ void Window::open (const YAML::Node& config_node)
             map("graphics",
                 scalar("fullscreen", config.fullscreen),
                 scalar("vsync", config.vsync),
+       #ifdef DEBUG_BUILD
+                scalar("debug", config.debug),
+       #endif
                 one_of(
                     option("resolution",
                         std::map<std::string, Resolution>{
@@ -322,6 +328,14 @@ void Window::open (const YAML::Node& config_node)
         }
     }
     info("Loaded graphics configuration: fsaa={} vsync={} fullscreen={} width={} height={}", config.fsaa, config.vsync, config.fullscreen, config.resolution.width, config.resolution.height);
+#ifdef DEBUG_BUILD
+    debugMode = config.debug;
+    if (debugMode) {
+        info("Debug rendering enabled");
+    } else {
+        info("Debug rendering disabled");
+    }
+#endif
 
     // Set the OpenGL attributes for our context
     SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
@@ -412,9 +426,10 @@ void Window::run ()
     {
         std::random_device rd;
         std::mt19937 mt(rd());
-        std::uniform_real_distribution<float> dist(0.0, 50.0);
-        for (unsigned i=0; i<1000; ++i) {
-            spriteData.push_back(Sprite{{dist(mt), dist(mt)}, 1});
+        std::uniform_real_distribution<float> dist(0.0, 200.0);
+        std::uniform_real_distribution<float> rnd(0.0, 3.0);
+        for (unsigned i=0; i<10000; ++i) {
+            spriteData.push_back(Sprite{{dist(mt), dist(mt)}, rnd(mt)});
         }
     }
 
@@ -425,6 +440,7 @@ void Window::run ()
     GLuint texture = loadTextureArray(std::vector<std::string>{
         "data/TEXTURES/G000M801.BMP",
         "data/TEXTURES/S5G0I800.BMP",
+        "data/test.png"
     });
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 
@@ -475,10 +491,13 @@ void Window::run ()
 //    Uniform_t u_shadow_model = test.shadows.uniform("model");
 //    Uniform_t u_lightspace = test.shadows.uniform("lightSpaceMatrix");
 
-    DeferredRenderer renderer(true);
-    checkErrors();
+
+#ifdef DEBUG_BUILD
+    DeferredRenderer renderer(debugMode);
+#else
+    DeferredRenderer renderer(false);
+#endif
     renderer.init(width, height);
-    checkErrors();
 
     renderer.updateSprites(spriteData);
 
@@ -558,8 +577,8 @@ void Window::run ()
 
         // Get the screen bounding recatingle
         Rect screenBounds{
-            glm::unProject(glm::vec3(viewport.x, viewport.y, 1.0f), view, projection, viewport),
-            glm::unProject(glm::vec3(viewport.z, viewport.w, 1.0f), view, projection, viewport),
+            glm::vec2(glm::unProject(glm::vec3(viewport.x, viewport.y, 1.0f), view, projection, viewport)),
+            glm::vec2(glm::unProject(glm::vec3(viewport.z, viewport.w, 1.0f), view, projection, viewport)),
         };
 
 //        info("Mouse:  {}, {}, {}", mouse.x, mouse.y, mouse.z);
