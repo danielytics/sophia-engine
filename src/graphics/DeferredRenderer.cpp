@@ -17,7 +17,9 @@ std::map<GLenum,std::string> GL_ERROR_STRINGS = {
 
 
 DeferredRenderer::DeferredRenderer(bool enabledDebugRendering)
+#ifdef DEBUG_BUILD
     : debugRenderingEnabled(enabledDebugRendering)
+#endif
 {
 
 }
@@ -42,11 +44,13 @@ void DeferredRenderer::init (float width, float height, bool softInitialise)
         // Retrieve uniform locations
 //        u_gbuffer_rendermode = gbufferShader.uniform("renderMode");
 
+#ifdef DEBUG_BUILD
         if (debugRenderingEnabled) {
             debugShader = Shader::load("data/shaders/debug.vert", "data/shaders/debug.frag");
             u_debugTexture = debugShader.uniform("debugTexture");
             u_debugMode = debugShader.uniform("debugMode");
         }
+#endif
 
         // Fullscreen quad
         float quadVertices[] = {
@@ -165,9 +169,11 @@ void DeferredRenderer::term (bool softTerminate)
         glDeleteVertexArrays(1, &quadVAO);
         gbufferSpriteShader.unload();
         pbrLightingShader.unload();
+#ifdef DEBUG_BUILD
         if (debugRenderingEnabled) {
             debugShader.unload();
         }
+#endif
     }
 }
 
@@ -263,6 +269,7 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 
     // Render foreground objects
 
+#ifdef DEBUG_BUILD
     if (debugRenderingEnabled) {
         /// Render debug information (render buffers to viewports)
         glEnable(GL_SCISSOR_TEST);
@@ -296,4 +303,5 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
         glDisable(GL_SCISSOR_TEST);
         glEnable(GL_DEPTH_TEST);
     }
+#endif
 }

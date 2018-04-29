@@ -24,8 +24,6 @@ public:
     }
 
 private:
-    bool debugRenderingEnabled;
-
     Shader_t gbufferBackgroundShader;
     Uniform_t u_texture;
 
@@ -34,9 +32,12 @@ private:
     Shader_t particlesShader;
     Shader_t transparencyShader;
 
+#ifdef DEBUG_BUILD
+    bool debugRenderingEnabled;
     Shader_t debugShader;
     Uniform_t u_debugTexture;
     Uniform_t u_debugMode;
+#endif
 
     GLsizei screenWidth;
     GLsizei screenHeight;

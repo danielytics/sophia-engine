@@ -11,7 +11,7 @@ INCLUDEPATH += include \
 			   depends/entt/src
 
 QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
-QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
+QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME -DDEBUG_BUILD
 #QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
 
 # Platform-specific configuration
@@ -92,4 +92,7 @@ HEADERS += \
     include/util/Logging.h \
     include/util/Telemetry.h \
     include/window/Window.h \
-    include/graphics/Debug.h
+    include/graphics/Debug.h \
+    include/world/Scene.h \
+    include/math/Types.h \
+    include/math/AABB.h

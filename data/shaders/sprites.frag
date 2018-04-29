@@ -12,8 +12,12 @@ layout (location = 2) out vec4 gBufferAlbedo;
 uniform sampler2DArray u_texture;
 
 void main(void) {
+	vec4 tex = texture(u_texture, vec3(fragment.textureCoordinates, fragment.image));
+	if (tex.a < 1.0) {
+		discard; // No early-z for sprites :'(
+	}
 	vec3 normal = vec3(0.0, 0.0, 1.0);
-	vec3 albedo = texture(u_texture, vec3(fragment.textureCoordinates, fragment.image)).rgb;
+	vec3 albedo = tex.rgb;
 	float ao = fragment.textureCoordinates.x;
 	float roughness = fragment.textureCoordinates.y;
 	float specular = 0.0;

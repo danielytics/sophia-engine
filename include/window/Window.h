@@ -34,6 +34,9 @@ private:
     const std::string title;
     float width;
     float height;
+#ifdef DEBUG_BUILD
+    bool debugMode;
+#endif
 };
 
 #endif // WINDOW_H

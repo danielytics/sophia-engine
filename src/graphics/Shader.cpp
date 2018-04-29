@@ -27,7 +27,7 @@ GLuint compileAndAttach (GLuint shaderProgram, GLenum programType, const std::st
         char* shaderInfoLog = new char[maxLength];
         glGetShaderInfoLog(program, maxLength, &maxLength, shaderInfoLog );
 
-        error("Failed to compile shader:{}\n{}", filename, shaderInfoLog);
+        fatal("Failed to compile shader:{}\n{}", filename, shaderInfoLog);
 
         delete [] shaderInfoLog;
 
@@ -61,7 +61,7 @@ Shader::Shader createShader (const std::string& vertexShaderFilename, const std:
         char* shaderProgramInfoLog = new char[maxLength];
         glGetProgramInfoLog(shaderProgram, maxLength, &maxLength, shaderProgramInfoLog);
 
-        error("Linking shaders {} and {} failed.\n{}", vertexShaderFilename, fragmentShaderFilename, shaderProgramInfoLog);
+        fatal("Linking shaders {} and {} failed.\n{}", vertexShaderFilename, fragmentShaderFilename, shaderProgramInfoLog);
 
         delete [] shaderProgramInfoLog;
 

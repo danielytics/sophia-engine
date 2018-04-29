@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     YAML::Node config = YAML::LoadFile("config.yml");
     Logging::init(config);
 
-    {
+    try {
         Window window("Sophia");
         window.open(config);
 
@@ -25,6 +25,9 @@ int main(int argc, char *argv[])
         config.reset();
 
         window.run();
+    }
+    catch (const std::runtime_error& except) {
+        error("Terminating due to: {}", except.what());
     }
 
     Logging::term();

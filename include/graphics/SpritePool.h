@@ -11,6 +11,7 @@ struct Sprite {
 
 class SpritePool : public Renderable {
 public:
+    SpritePool ();
     ~SpritePool ();
 
     void init (const Shader_t& spriteShader);
@@ -19,11 +20,16 @@ public:
     void render (const Rect& bounds);
 
 private:
+    std::vector<Sprite> sortedBuffer;
+    std::vector<Sprite> unsortedBuffer;
     Mesh mesh;
     Buffer_t tbo;
     Buffer_t tbo_tex;
     Uniform_t u_tbo_tex;
     Uniform_t u_texture;
+
+    glm::vec2 prevCenterPoint;
+    unsigned visibleSprites;
 
     unsigned spriteCount;
 };
