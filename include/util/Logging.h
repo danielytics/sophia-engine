@@ -14,23 +14,23 @@ namespace Logging {
 
 #define LOG_FILELINE_FMT "({}:{}:{}) "
 
-#define _LOG_(L, fmt, ...) Logging::logger->L(LOG_FILELINE_FMT fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+#define LOG_(L, fmt, ...) Logging::logger->L(LOG_FILELINE_FMT fmt, __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
 
 #ifdef SPDLOG_TRACE_ON
-#define trace(...) _LOG_(trace, __VA_ARGS__)
+#define trace(...) LOG_(trace, __VA_ARGS__)
 #else
 #define trace(...)
 #endif
 
 #ifdef SPDLOG_DEBUG_ON
-#define debug(...) _LOG_(debug, __VA_ARGS__)
+#define debug(...) LOG_(debug, __VA_ARGS__)
 #else
 #define debug(...)
 #endif
 
-#define info(...) _LOG_(info, __VA_ARGS__)
-#define warn(...) _LOG_(warn, __VA_ARGS__)
-#define error(...) _LOG_(error, __VA_ARGS__)
+#define info(...) LOG_(info, __VA_ARGS__)
+#define warn(...) LOG_(warn, __VA_ARGS__)
+#define error(...) LOG_(error, __VA_ARGS__)
 
 #define fatal(...) {error(__VA_ARGS__); throw std::runtime_error("Unrecoverable error");}
 

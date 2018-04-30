@@ -3,16 +3,28 @@ CONFIG += console c++14
 CONFIG -= app_bundle
 CONFIG -= qt
 
+# Select modules
+#################################
+PHYSICS_ENGINE = BULLET
+#################################
+
 INCLUDEPATH += include \
                depends/moodycamel/include \
                depends/yaml-cpp/include \
                depends/glm-0.9.7.4/include \
 			   depends/spdlog/include \
-			   depends/entt/src
+			   depends/entt/src \
+			   depends/physfs-cpp/include
 
 QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
 QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME -DDEBUG_BUILD
 #QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
+
+# Conditionally add source files depending on selected physics engine
+#################################
+contains(PHYSICS_ENGINE, BULLET) {
+	SOURCES += src/physics/bullet/BulletEngine.cpp
+}
 
 # Platform-specific configuration
 #################################
@@ -23,12 +35,18 @@ macx {
     QMAKE_LFLAGS += -pagezero_size 10000 -image_base 100000000
 	INCLUDEPATH += /usr/local/Cellar/sdl2/2.0.8/include \
 				   /usr/local/Cellar/glew/2.1.0/include \
+				   /usr/local/Cellar/physfs/3.0.1/include \
+				   /usr/local/include/bullet \
                    /usr/local/include/luajit-2.0
     LIBS += -framework OpenGL \
 			-L/usr/local/Cellar/sdl2/2.0.8/lib -lSDL2 \
 			-L/usr/local/Cellar/glew/2.1.0/lib -lGLEW \
-			/usr/local/lib/libyaml-cpp.a \
-			/usr/local/lib/libluajit-5.1.a
+			-L/usr/local/Cellar/physfs/3.0.1/lib -lphysfs \
+			-L/depends/physfs-cpp/src -lphysfs++
+			-L/usr/local/lib/
+			-lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath \
+			-lyaml-cpp \
+			-lluajit-5.1.a
 #            -F/Library/Frameworks -framework SDL2
 }
 
@@ -95,4 +113,5 @@ HEADERS += \
     include/graphics/Debug.h \
     include/world/Scene.h \
     include/math/Types.h \
-    include/math/AABB.h
+    include/math/AABB.h \
+    include/physics/Engine.h
