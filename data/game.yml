@@ -1,0 +1,6 @@
+game:
+    name: Test Game
+    start: 1
+    scenes:
+        1:
+            scene: scene1.yml
