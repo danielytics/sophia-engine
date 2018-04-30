@@ -60,12 +60,13 @@ GLuint loadTexture (const std::string& filename)
 GLuint loadTextureArray (const std::vector<std::string>& filenames)
 {
     GLuint texture = 0;
-    int width, height;
+    int width=0, height=0;
     int components;
     // Load the image files
     auto images = std::vector<unsigned char*>{};
     for (auto filename : filenames) {
-        unsigned char* image = stbi_load(filename.c_str(), &width, &height, &components, STBI_rgb_alpha);
+        std::string buffer = Helpers::readToString(filename);
+        unsigned char* image = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(buffer.c_str()), int(buffer.size()), &width, &height, &components, STBI_rgb_alpha);
         info("Loading image '{}', width={} height={} components={}", filename, width, height, components);
         images.push_back(image);
     }
@@ -247,10 +248,9 @@ Test setupTest() {
     };
 }
 
-Window::Window (const std::string& title)
+Window::Window ()
     : ready(false)
     , window(nullptr)
-    , title(title)
 {
     // Initialize SDL's Video subsystem
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -273,7 +273,7 @@ Window::~Window ()
     }
 }
 
-void Window::open (const YAML::Node& config_node)
+void Window::open (const std::string& title, const YAML::Node& config_node)
 {
     // Load ystem configuration
     struct Resolution {
@@ -438,9 +438,9 @@ void Window::run ()
 
     glActiveTexture(GL_TEXTURE0+5);
     GLuint texture = loadTextureArray(std::vector<std::string>{
-        "data/TEXTURES/G000M801.BMP",
-        "data/TEXTURES/S5G0I800.BMP",
-        "data/test.png"
+        "TEXTURES/G000M801.BMP",
+        "TEXTURES/S5G0I800.BMP",
+        "test.png"
     });
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
 

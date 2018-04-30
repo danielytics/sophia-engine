@@ -2,6 +2,7 @@
 #define HELPERS_H
 
 #include <utility>
+#include <string>
 
 namespace Helpers {
 
@@ -23,6 +24,8 @@ void move_back_and_replace(ContainerType& container, std::size_t index, typename
     container.push_back(std::move(container[index]));
     container[index] = std::move(data);
 }
+
+std::string readToString(const std::string& filename);
 
 }
 

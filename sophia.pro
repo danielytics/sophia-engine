@@ -8,6 +8,9 @@ CONFIG -= qt
 PHYSICS_ENGINE = BULLET
 #################################
 
+# General configuration
+#################################
+
 INCLUDEPATH += include \
                depends/moodycamel/include \
                depends/yaml-cpp/include \
@@ -29,7 +32,6 @@ contains(PHYSICS_ENGINE, BULLET) {
 # Platform-specific configuration
 #################################
 
-
 # Mac OS X
 macx {
     QMAKE_LFLAGS += -pagezero_size 10000 -image_base 100000000
@@ -42,11 +44,10 @@ macx {
 			-L/usr/local/Cellar/sdl2/2.0.8/lib -lSDL2 \
 			-L/usr/local/Cellar/glew/2.1.0/lib -lGLEW \
 			-L/usr/local/Cellar/physfs/3.0.1/lib -lphysfs \
-			-L/depends/physfs-cpp/src -lphysfs++
-			-L/usr/local/lib/
+			-L/usr/local/lib/ \
 			-lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath \
 			-lyaml-cpp \
-			-lluajit-5.1.a
+			-lluajit-5.1
 #            -F/Library/Frameworks -framework SDL2
 }
 
@@ -65,6 +66,14 @@ win32 {
 unix:!macx {
 
 }
+
+# Embedded Dependency Files
+#################################
+SOURCES += depends/physfs-cpp/src/physfs.cpp \ # Using the static library causes symbol mismatch unless same compiler is used
+    src/util/Helpers.cpp
+
+# Project Files
+#################################
 
 DISTFILES += \
     data/shaders/pbr.frag \
