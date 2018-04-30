@@ -1,0 +1,6 @@
+scene:
+  - ground:
+    type: entity
+    components:
+      - physics-body:
+        shape: box
