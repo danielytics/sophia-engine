@@ -16,10 +16,10 @@
 class Window
 {
 public:
-    Window (const std::string& tile);
+    Window ();
     ~Window();
 
-    void open (const YAML::Node&);
+    void open (const std::string& title, const YAML::Node&);
     void run ();
 
 
@@ -31,7 +31,6 @@ private:
     SDL_GLContext context;
     SDL_Window* window;
     glm::vec4 viewport;
-    const std::string title;
     float width;
     float height;
 #ifdef DEBUG_BUILD
