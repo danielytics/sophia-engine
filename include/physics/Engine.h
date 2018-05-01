@@ -1,6 +1,7 @@
 #ifndef ENGINE_H
 #define ENGINE_H
 
+#include <glm/glm.hpp>
 #include "util/Config.h"
 
 namespace physics {
@@ -17,6 +18,8 @@ public:
     ~Engine ();
 
     void step (float dt);
+
+    void addBody (const glm::vec2& position, const glm::vec2& halfExtents);
 
 private:
     struct PhysicsData* data;

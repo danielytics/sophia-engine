@@ -35,6 +35,10 @@ public:
         return AABB(std::move(r));
     }
 
+    inline glm::vec2 centerPoint () const {
+        return glm::vec2((rect.top_left.x + rect.bottom_right.x) * 0.5f, (rect.top_left.y + rect.bottom_right.y) * 0.5f);
+    }
+
     // Coordinate system: top_left.x <= bottom_right.x, top_left.y >= bottom_right.y
     const Rect rect;
 };
