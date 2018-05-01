@@ -87,6 +87,9 @@ A group node is a collection of nodes. This does not exist at runtime and is use
 <node-name>:
   type: group
   comment: <optional description/comment, used in the editor>
+  defaults:
+    <component name:
+        <component>
   children:
     <list of child nodes>
 ```
@@ -102,32 +105,70 @@ Transformation components represent the location of the entity in the scenes 2D 
 ```
 <node-name>:
   type: entity
+  comment: <optional description/comment, used in the editor>
   components:
     <list of components>
   children:
     <list of child nodes>
 ```
 
+Each component is has the name of the component as the key and the value is a map of attributes. For example, a `position` component might have an `x` and `y` attribute and would be defined as follows:
+```
+position:
+  x: <value for x>
+  y: <value for y>
+```
+Since it is YAML, it could also be defined as:
+```
+position: x=100 y=100
+```
+
+An example of a simple entity is:
+```
+player:
+  type: entity
+  comment: The player character
+  components:
+    - position: x=10 y=0
+    - sprite:
+       image: images/default-character.png
+    - rigid-body:
+      shape:
+        box2d: [0.5, 0.2]
+  children:
+    - weapon:
+      type: entity
+      components:
+        - position: x=0.2 y=0.3 # Relative to parent!
+        - sprite:
+          image: images/default-weapon.png
+```
+
 ### template
 
-A template node is an instance of a entity node tree that has been precreated for convenience. The structure of template files is described below. Templates can expose attributes, which can be set in the node. Templates can have children as usual, which are added to the root nodes children in that template.
+A template node is a node which defines an entity using a template source file. A tenplate source file is similar to a scene file and defines a tree of entities, which is loaded in place of the template node. Any children of the template node are appended to the children of the entity in the template source file. The structure of the template source file is described below.
+Template nodes are not loaded into the scene by default when the scene is loaded, but can define an optional list of instances. A copy of the instantiated entity tree is inserted for each instance listed in the template nodes instance list and the attributes in the template source file are replacd with those specified for each instance. This way, zero or more copies of the template node can be loaded into the scene.
+Template nodes can also be dynamically instantiated at runtime throuwh spawner components.
 
 ```
 <node-name>:
   type: template
+  comment: <optional description/comment, used in the editor>
   source: <template yaml file>
-  attributes:
-    <attribute name>: <attribute value>
-    ...
+  instances:
+    - <attribute name>: <attribute value>
+      ...
   children:
     <list of children>
 ```
 
+Limitation: currently, the node name of a template node must be unique (for template nodes) within the file in which it is found (scene file or template source file). Defining multiple template nodes with the same node name will cause scene loading to fail. The same node name used by a template node *may* be used for entity or group nodes.
+
 ### Template source files
 
-A template source file is a yaml file describing the node tree for that template. When this template is instanced into a scene, at runtime the template node in the scene is replaced with a copy/instance of the node tree in this file, with all of the placeholder attributes replaced by the attributes listed in the template node and all of the templates child nodes appended to the children of the root node in the templated tree.
+A template source file is a yaml file describing the node tree for that template. When this template is instantiated into a scene, at runtime the template node in the scene is replaced with a copy/instance of the node tree in this file, with all of the placeholder attributes replaced by the attributes listed in the template nodes instance list and all of the templates child nodes appended to the children of the root node in the templated tree.
 
-The root node must be of type `entity` or `template` (ie `group` is not allowed), however, child nodes can be of any type. If the type is `template`, then the instance is created recursively by instanciating that template first, setting its attributes, appending the children and then insterting that into the scene, setting its attributes and appending children. Attributes can be forwarded. Template nesting can be arbitrarily deep.
+The root node must be of type `entity` or `template` (ie `group` is not allowed), however, child nodes can be of any type. If the type is `template`, then the instance is created recursively by instantiating that template first, setting its attributes, appending the children and then insterting that into the scene, setting its attributes and appending children. Attributes can be forwarded. Template nesting can be arbitrarily deep.
 
 ```
 template:
@@ -167,11 +208,11 @@ scene:
   - player:
     type: template
     source: mycharacter.yml
-    attributes:
-      position-x: 10
-      position-y: 0
-      sprite-image: images/overridden-character.png
-      weapon-image: images/overridden-weapon.png
+    instances:
+      - position-x: 10
+        position-y: 0
+        sprite-image: images/overridden-character.png
+        weapon-image: images/overridden-weapon.png
     children:
       - hat:
         type: entity
@@ -180,3 +221,137 @@ scene:
           - sprite:
             image: images/hat.png
 ```
+
+# Components
+
+## List of Components
+
+Below is a list of built-in components.
+
+ * **location**
+```
+location:
+  x: <x position in the scene>
+  y: <y position in the scene>
+  z: <z position within the layer>
+  layer: <background, playfield, foreground>
+```
+
+ * **trigger-region**
+```
+trigger-region:
+  shape: <shape data>
+```
+
+ * **rigid-body**
+```
+rigid-body:
+  mass: <body mass>
+  shape: <shape data>
+```
+
+ * **sprite**
+```
+sprite:
+  color: <color data>
+  image: <image filename>
+```
+
+ * **spawner**
+```
+spawner:
+  event: <name of event>
+  template: <template node name>
+```
+Limitation: currently spawner components can only instantiate templates defined in the same yaml file (scene or template source file) in which they are contained.
+[IDEA: a potential workaround for the above limitation is to create event forwarder components that have a scene-wide addressing mechanism, which can forward events emitted by a node in a different template source file in the same scene to a spawner node in the same file as the forwarder node]
+
+ * **behavior**
+```
+behavior:
+  source: <lua file name>
+  on:
+    <event name>: <function name>
+    ...
+```
+Behaviors call Lua funcitons in response to events. The Lua functions get passed two arguments: `(event, entity)`
+
+`event` is an object containing the data of the event which triggered the function, as well as allowing the function to emit new events. The `entity` is an object which provides access to the entity to which the behavior component belongs and provides both read access to the entities other components. Component data may be modified by issuing events.
+
+## Component Data
+
+Data types used by various components:
+
+ * **Vector2D data**
+```
+<...>:
+  x: <x component>
+  y: <y component>
+```
+
+ * **Vector3D data**
+```
+<...>:
+  x: <x component>
+  y: <y component>
+  z: <z component>
+```
+
+ * **Shape data**
+```
+box:
+  w: <width of box>
+  h: <height of box>
+
+circle:
+  r: <radius of circle>
+
+triangle:
+  - <[x, y] for first point>
+  - <[x, y] for second point>
+  - <[x, y] for third point>
+
+polygon:
+  vertices:
+    - <[x, y] for point>
+    ...
+
+polygon:
+  ref: <unique resource id for polygon>
+
+```
+
+ * **Color data**
+```
+rgb: [r, g, b]
+
+rgba: [r, g, b, a]
+
+hsl: [h, s, l]
+
+hsla: [h, s, l, a]
+
+hsv: [h, s, v]
+
+hsva: [h, s, v, a]
+
+gs: [grayscale brightness]
+
+gsa: [grayscale brightness, a]
+```
+
+ * **Mesh data**
+```
+mesh:
+  ref: <unique resource id for mesh>
+
+mesh:
+  source: <OBJ source file for mesh>
+
+mesh:
+ primitive: <'point', 'line', 'line-strip', 'triangle', 'triangle-strip' or 'triangle-fan'>
+ vertices:
+   - <[x, y] of vertex>
+   ...
+```
+
