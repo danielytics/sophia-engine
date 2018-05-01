@@ -162,7 +162,7 @@ Template nodes can also be dynamically instantiated at runtime throuwh spawner c
     <list of children>
 ```
 
-Limitation: currently, the node name of a template node must be unique (for template nodes) within the file in which it is found (scene file or template source file). Defining multiple template nodes with the same node name will cause scene loading to fail. The same node name used by a template node *may* be used for entity or group nodes.
+**Limitation:** currently, the node name of a template node must be unique (for template nodes) within the file in which it is found (scene file or template source file). Defining multiple template nodes with the same node name will cause scene loading to fail. The same node name used by a template node *may* be used for entity or group nodes.
 
 ### Template source files
 
@@ -241,6 +241,8 @@ location:
 ```
 trigger-region:
   shape: <shape data>
+  event: <event data>
+  triggers: <list of physics object types which trigger this region>
 ```
 
  * **rigid-body**
@@ -263,7 +265,8 @@ spawner:
   event: <name of event>
   template: <template node name>
 ```
-Limitation: currently spawner components can only instantiate templates defined in the same yaml file (scene or template source file) in which they are contained.
+**Limitation:** currently spawner components can only instantiate templates defined in the same yaml file (scene or template source file) in which they are contained.
+
 [IDEA: a potential workaround for the above limitation is to create event forwarder components that have a scene-wide addressing mechanism, which can forward events emitted by a node in a different template source file in the same scene to a spawner node in the same file as the forwarder node]
 
  * **behavior**
@@ -354,4 +357,20 @@ mesh:
    - <[x, y] of vertex>
    ...
 ```
+
+ * **Event data**
+```
+event:
+  type: <event name>
+  <event attribute name>: <attribute value>
+  ...
+```
+
+Events also automatically get the following attributes added at runtime when sent. These are not allowed in the event data.
+```
+source-entity: <id of entity which triggered the event>
+source-node: <name of node which triggered the event>
+trigger-data: <event source specific data>
+```
+`trigger-data` depends on the emitter of the event and may be null. For example, `trigger-region` sets this property to contain data about which entity entered the region.
 
