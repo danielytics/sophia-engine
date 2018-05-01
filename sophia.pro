@@ -27,6 +27,11 @@ QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_I
 #################################
 contains(PHYSICS_ENGINE, BULLET) {
 	SOURCES += src/physics/bullet/BulletEngine.cpp
+	macx {
+		INCLUDEPATH += /usr/local/include/bullet
+		LIBS += -L/usr/local/lib/
+	}
+	LIBS += -lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath
 }
 
 # Platform-specific configuration
@@ -38,14 +43,11 @@ macx {
 	INCLUDEPATH += /usr/local/Cellar/sdl2/2.0.8/include \
 				   /usr/local/Cellar/glew/2.1.0/include \
 				   /usr/local/Cellar/physfs/3.0.1/include \
-				   /usr/local/include/bullet \
                    /usr/local/include/luajit-2.0
     LIBS += -framework OpenGL \
 			-L/usr/local/Cellar/sdl2/2.0.8/lib -lSDL2 \
 			-L/usr/local/Cellar/glew/2.1.0/lib -lGLEW \
 			-L/usr/local/Cellar/physfs/3.0.1/lib -lphysfs \
-			-L/usr/local/lib/ \
-			-lBulletSoftBody -lBulletDynamics -lBulletCollision -lLinearMath \
 			-lyaml-cpp \
 			-lluajit-5.1
 #            -F/Library/Frameworks -framework SDL2
