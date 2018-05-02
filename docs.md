@@ -46,12 +46,15 @@ The config file consists of a number of sections:
 game:
     name: <Name of the game>
     start: <name of start scene>
+    input:
+        <action name>: <input type and default value>
     scenes:
         <scene name>: <scene filename>
 ```
 
  * `name` is the name of the game, used to set the window title.
  * `start` is the name of the scene to start the game in (must be listed in `scenes`)
+ * `input` lists the actions which are to be mapped to user input, input type specifies what type of input is supported (button, axis, analogue, touch etc). Default values are also specified, but may be overridden programmatically, eg by in-game input mappers. Overridden data is stored in a platform specific place.
  * `scenes` is a collection of key/value pairs where the key is the name of the scene and the value is a yaml file describing the scene (see `data/sceneX.yml`)
 
 ## data/sceneX.yml
@@ -280,6 +283,23 @@ behavior:
 Behaviors call Lua funcitons in response to events. The Lua functions get passed two arguments: `(event, entity)`
 
 `event` is an object containing the data of the event which triggered the function, as well as allowing the function to emit new events. The `entity` is an object which provides access to the entity to which the behavior component belongs and provides both read access to the entities other components. Component data may be modified by issuing events.
+
+ * **persisted**
+```
+persisted:
+  - <name of component>
+  ...
+```
+
+This component causes all named components in this entity to be persisted when the game is saved and relaoded when the game is loaded.
+
+ * **global**
+```
+global: Yes
+```
+
+This component causes this entity to remain in the scene even when scenes are changed and it does NOT get reloaded if the original scene is loaded again.
+This does NOT cause any child entities to be global, if child entities should be global too, then they must be individually marked as global.
 
 ## Component Data
 
