@@ -1,5 +1,9 @@
 # Rudimentary Documentation
 
+NOTE: Most of what is described in this doucment does not yet exist. Its currently more documentation of what is planned to be implemented and serves as a means to solidify ideas before they are committed to code. As such, this is a living document and is subject to change as the design changes or if the planned features are implemented differently than described. The main purpose, right now, is to focus my thoughts.
+
+It is also envisioned that most of what is described here would not be edited directly in the YAML files, but instead be edited in a GUI editor (`dk/editor` branch).
+
 # File Structure
 
 ```
