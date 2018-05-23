@@ -14,11 +14,11 @@ Sophia takes ideas and influences from many things and places:
 * [Octopath Traveller](https://en.m.wikipedia.org/wiki/Octopath_Traveler)'s graphics style
 * [Artificial Intelligence for Games](https://www.amazon.com/Artificial-Intelligence-Games-Ian-Millington/dp/0123747317/ref=cm_cr_arp_d_product_top?ie=UTF8), [GameAI Pro](http://www.gameaipro.com) and [Left4Dead's AI Director](https://aiandgames.com/in-the-directors-chair-left-4-dead/)
 
-Sophia aims to combine concepts and ideas from the above influences into a coherent, flexible, yet performant whole. To this end, Sophia aims to combine a high-performance and flexible Entity component System (based on [EnTT](https://github.com/skypjack/entt)) with the convenience of a tree hierarchy of game objects, with all of the supporting logic and systems for powerful AI (not just for controlling NPC's, but also for controlling game flow and narrative), physics and editing tools (most game data is described in YAML files, making it easy to both edit by hand and read/write by tooling). The renderer is designed to be relatively modern (either deferred rendering or forward+ or a hybrid, we will see), using modern OpenGL (4.1), hand-crafted for an Octopath Traveller-inspired 2.5D fixed-camera-3D environment with 2D billboarded sprite characters and objects. 
+Sophia aims to combine concepts and ideas from the above influences into a coherent, flexible, yet performant whole. To this end, Sophia aims to combine a high-performance and flexible Entity Component System (based on [EnTT](https://github.com/skypjack/entt)) with the convenience of a tree hierarchy of game objects, with all of the supporting logic and systems for powerful AI (not just for controlling NPC's, but also for controlling game flow and narrative), physics and editing tools (most game data is described in YAML files, making it easy to both edit by hand and read/write by tooling). The renderer is designed to be relatively modern (either deferred rendering or forward+ or a hybrid, we will see), using modern OpenGL (4.1), hand-crafted for an Octopath Traveller-inspired 2.5D fixed-camera-3D environment with 2D billboarded sprite characters and objects. 
 
-On the tooling front, Sophia aims to have a straightforward and consistent workflow and good user experience.
+On the tooling front, Sophia aims to have a straightforward and consistent workflow, with a good, consistent user experience. UX is very important and shouldn't be an afterthought.
 
-The goal is to support Windows, Linux and Mac (possibly iOS in the future).
+The goal is to support Windows, Linux and Mac (possibly iOS in the future, although this would require either an OpenGL ES or Metal renderer).
 
 All with an open source license that doesn't restrict what you can do.
 
