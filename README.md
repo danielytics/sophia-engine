@@ -1,11 +1,13 @@
 
 # Sophia Game Engine
 
-The Sophia Game Engine is a 2D-first game engine written in C++14.
+The Sophia Game Engine is a 2.5D game engine written in C++17 and OpenGL 4.1.
 
 Development is happening in branches.
 
 # Design Goals
+
+First and foremost, this is meant to be a learning project, so while I'm striving towards the below goals, learning new things trumps being useful for the time being. Therefore, it is unlikely that Sophia will be useful as a production engine for making real games for now.
 
 Sophia takes ideas and influences from many things and places:
 
