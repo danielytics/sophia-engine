@@ -40,9 +40,6 @@ Engine Dependencies:
 * [LuaJIT](http://luajit.org/luajit.html) - Lua bindings and JIT runtime (MIT License)
 * [Assimp](http://assimp.org/) - Asset importer (BSD License)
 * [Bullet](https://github.com/bulletphysics/bullet3) - Physics engine (zlib License)
-* [FastNoise](https://github.com/Auburns/FastNoise) - Library of various noise functions (MIT License, note: Simplex noise is patent-encumbered when used for texture generation)
-* [PhysicsFS](http://icculus.org/physfs/) - Library for filesystem abstraction (zlib License)
-* [PhysFS++](https://github.com/kahowell/physfs-cpp) - C++ wrapper for PhysicsFS ([zlib License + notes](https://github.com/kahowell/physfs-cpp/blob/master/LICENSE.txt))
 
 Editor Dependencies:
 
