@@ -27,6 +27,7 @@ namespace Shader {
 
     inline void setUniform(Uniform_t location, float v) {return glUniform1f(location, v);}
     inline void setUniform(Uniform_t location, int v) {return glUniform1i(location, v);}
+    inline void setUniform(Uniform_t location, std::size_t v) {return glUniform1i(location, v);}
     inline void setUniform(Uniform_t location, const glm::vec2& v) {return glUniform2fv(location, 1, glm::value_ptr(v));}
     inline void setUniform(Uniform_t location, const glm::vec3& v) {return glUniform3fv(location, 1, glm::value_ptr(v));}
     inline void setUniform(Uniform_t location, const glm::vec4& v) {return glUniform4fv(location, 1, glm::value_ptr(v));}

@@ -14,6 +14,8 @@
 #include "graphics/DeferredRenderer.h"
 #include "graphics/Debug.h"
 
+//#include "graphics/Model.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -31,24 +33,42 @@ typedef std::chrono::high_resolution_clock Clock;
 typedef float Time_t;
 typedef std::chrono::duration<Time_t> Time;
 
- const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
+const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
- Renderable::~Renderable() {}
+Renderable::~Renderable() {}
 
 GLuint loadTexture (const std::string& filename)
 {
+    info("Loading {}", filename);
     GLuint texture = 0;
     int width, height, comp;
-    unsigned char* image = stbi_load(filename.c_str(), &width, &height, &comp, STBI_rgb_alpha);
+    std::string buffer = Helpers::readToString(filename);
+    unsigned char* image = stbi_load_from_memory(reinterpret_cast<const unsigned char*>(buffer.c_str()), int(buffer.size()), &width, &height, &comp, 0/*STBI_rgb_alpha*/);
+
     if (image) {
         info("Loading image '{}', width={} height={} components={}", filename, width, height, comp);
+
         glGenTextures(1, &texture);
         glBindTexture(GL_TEXTURE_2D, texture);
+
+        GLenum format = 0;
+        switch (comp) {
+        case 1:
+            format = GL_RED;
+            break;
+        case 3:
+            format = GL_RGB;
+            break;
+        case 4:
+            format = GL_RGBA;
+            break;
+        }
+        glTexImage2D(GL_TEXTURE_2D, 0, GLint(format), width, height, 0, format, GL_UNSIGNED_BYTE, image);
+
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, image);
 
         stbi_image_free(image);
     } else {
@@ -61,7 +81,7 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
 {
     GLuint texture = 0;
     int width=0, height=0;
-    int components;
+    int components = 0;
     // Load the image files
     auto images = std::vector<unsigned char*>{};
     for (auto filename : filenames) {
@@ -70,16 +90,28 @@ GLuint loadTextureArray (const std::vector<std::string>& filenames)
         info("Loading image '{}', width={} height={} components={}", filename, width, height, components);
         images.push_back(image);
     }
+    GLenum format = 0;
+    switch (components) { // Assume all textures have the same input format
+    case 1:
+        format = GL_RED;
+        break;
+    case 3:
+        format = GL_RGB;
+        break;
+    case 4:
+        format = GL_RGBA;
+        break;
+    }
 
     // Create the texture array
     glGenTextures(1, &texture);
     glBindTexture(GL_TEXTURE_2D_ARRAY, texture);
-    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GL_RGBA,  width, height, images.size(), 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexImage3D(GL_TEXTURE_2D_ARRAY, 0, GLint(format),  width, height, images.size(), 0, format, GL_UNSIGNED_BYTE, nullptr);
 
     // Load texture data into texture array
     for (unsigned index = 0; index < images.size(); ++index) {
         auto image = images[index];
-        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index, width, height, 1, GL_RGBA, GL_UNSIGNED_BYTE, image);
+        glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, index, width, height, 1, format, GL_UNSIGNED_BYTE, image);
         stbi_image_free(image);
     }
     info("Loaded {} images into texture array", images.size());
@@ -258,6 +290,8 @@ Window::Window ()
         error("Failed to init SDL");
         throw std::runtime_error("Failed to initialise SDL");
     }
+    info("CPU logical cores: {}", SDL_GetCPUCount());
+    info("CPU cache line size: {} bytes", SDL_GetCPUCacheLineSize());
 
     ready = true;
 }
@@ -304,14 +338,14 @@ void Window::open (const std::string& title, const YAML::Node& config_node)
                 scalar("debug", config.debug),
        #endif
                 one_of(
-                    option("resolution",
+                    choice("resolution",
                         std::map<std::string, Resolution>{
                             {"720p", Resolution{1280, 720}},
                             {"1080p", Resolution{1920, 1080}},
                         }, config.resolution),
                     sequence("resolution", res)
                     ),
-                option("fsaa",
+                choice("fsaa",
                     std::map<std::string, int>{
                         {"2x", 2},
                         {"4x", 4},
@@ -501,6 +535,9 @@ void Window::run ()
 
     renderer.updateSprites(spriteData);
 
+    Shader_t modelShader = Shader::load("data/shaders/model.vert", "data/shaders/model.frag");
+//    Model::Model model("models/model.fbx");
+
     // Run the main processing loop
     do {
         // Gather and dispatch input
@@ -586,6 +623,15 @@ void Window::run ()
 
         // Render the scene
         renderer.render(screenBounds, view);
+//        glm::mat4 projection_matrix = glm::perspective(glm::radians(60.0f), width / height, 0.1f, 20.0f);
+//        Shader::setUniform(modelShader.uniform("projection"), projection_matrix);
+//        Shader::setUniform(modelShader.uniform("view"), view);
+
+//        glm::mat4 model_matrix;
+//        model_matrix = glm::translate(model_matrix, glm::vec3(0.0f, -1.75f, 0.0f)); // translate it down so it's at the center of the scene
+//        model_matrix = glm::scale(model_matrix, glm::vec3(0.2f, 0.2f, 0.2f));	// it's a bit too big for our scene, so scale it down
+//        Shader::setUniform(modelShader.uniform("model"), model_matrix);
+//        model.Draw(modelShader);
 
 //        glm::vec3 lightPos0(20.0f, 0.0f, 3.0f);
 //        glm::vec3 lightPos1(-20.0f, 5.0f, 5.0f);

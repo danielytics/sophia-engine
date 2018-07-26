@@ -131,6 +131,21 @@ namespace Config {
         };
     }
 
+    /**
+     * one_of (attribute_name, defintions...)
+     *
+     * Parse each definition until the one succeeds to parse, then stop.
+     *
+     * Example:
+     *  struct { int num; std::vector<std::string> strs; } foo;
+     *  auto parser = Config::make_parser(
+     *      Config::one_of(
+     *         Config::scalar("x", foo.num),
+     *         Config::sequence("x", foo.strs))
+     *  );
+     *  parser(YAML::Load("x: 5")); // sets foo.num
+     *  parser(YAML::Load("x:\n  - hello\n  - world")); // sets foo.strs
+     */
     template <typename... Definitions>
     inline Def one_of (Definitions... defs) {
         Defs def_fns = Defs{};
@@ -161,8 +176,25 @@ namespace Config {
         };
     }
 
+    /**
+     * choice (attribute_name, mapping, output_reference)
+     *
+     * Parse a string and return the value taken from the passed-in string to value mapping.
+     *
+     * Example:
+     * 	int val;
+     * 	auto parser = Config::make_parser(
+     * 		Config::choice("value",
+     *          std::map<std::string, int>{
+     *              {"one", 1},
+     *              {"two", 2},
+     *          }, val),
+     * 	);
+     * 	parser(YAML::Load("value: one")); // sets val to 1
+     *  parser(YAML::Load("value: two")); // sets val to 2
+     */
     template <typename MapT, typename ValT>
-    inline Def option (const std::string& name, MapT options, ValT& output) {
+    inline Def choice (const std::string& name, MapT options, ValT& output) {
         return [name, options, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
             if (node.IsScalar()) {
@@ -182,6 +214,41 @@ namespace Config {
             }
         };
     }
+
+    /**
+     * opitonal (definitons...)
+     *
+     * Attempts to parse definition, quietly ignoring any attribute missing errors
+     *
+     * Examples:
+     * 	struct { int num; std::string str; } foo;
+     * 	auto parser = Config::make_parser(
+     * 		Config::optional(
+     *           Config::scalar("num", foo.num),
+     *           Config::scalar("str", foo.str))
+     * 	);
+     * 	parser(YAML::Load("num: 5")); // Without optional, "str" would raise an attribute missing error
+     */
+    template <typename... Definitions>
+    inline Def optional (Definitions... defs) {
+            Defs def_fns = Defs{};
+            detail::def(def_fns, defs...);
+            return [def_fns](ErrorFn error_cb, const YAML::Node& node) mutable {
+                // Override the error callback to detect unsuccessful parses
+                auto error_fn = [error_cb](const Error err, const std::string& name, const YAML::Node& node) {
+                    if (err != Error::AttributeMissing) {
+                        // If the error is something other than attribute missing then we let the error callback handle this.
+                        error_cb(err, name, node);
+                    }
+                };
+                // Attempt all definitions, ignore all attribute missing errors
+                for (auto fn : def_fns) {
+                    // Attempt to parse the value
+                    fn(error_fn, node);
+                }
+            };
+        }
+
 
     /**
      * scalar (attribute_name, output_reference)

@@ -1,6 +1,7 @@
 #include "graphics/DeferredRenderer.h"
 #include "graphics/Debug.h"
 #include "util/Logging.h"
+#include "math/Types.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -191,9 +192,18 @@ enum UberShaderMode {
     MODE_SPRITES
 };
 
+struct LightSource {
+    glm::vec4 position; // w = radius
+    glm::vec3 color;
+};
+
 void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 {
     glViewport(0, 0, screenWidth, screenHeight);
+
+    // Render shadow casters to shadow maps
+
+    // Calculate view-space shadow map from individual shadow maps
 
     // Load view into UBO
     glBindBuffer(GL_UNIFORM_BUFFER, matrices_ubo);
@@ -230,8 +240,9 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 
     /// Render g-buffer to framebuffer
 
-    // Bind g-buffer
+    // Set shader for ambient lighting and shadow casting lights
     pbrLightingShader.use();
+    // Bind g-buffer
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, gBufferPosition);
@@ -243,6 +254,8 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
     glBindTexture(GL_TEXTURE_2D, gBufferAlbedo);
     Shader::setUniform(pbrLightingShader.uniform("gAlbedoSpec"), 2);
 
+    // Set shadow caster lights
+    // Set non-shadow scasting lights
     // TODO: set lights
 
     // Render fullscreen quad
@@ -251,6 +264,22 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
+
+#if 0
+    // Apply additional shadow casting lights to tiles (shadows dynamically calculated through ray casting, attenuation + rays must be short)
+    std::array<LightSource, 0> lights;
+    std::array<Rect, 0> tiles;
+    for (auto tile : tiles) {
+        unsigned light_idx = 0;
+        for (auto light : lights) {
+            if (tile.containes(glm::vec2(light.position))) {
+                std::string lightSource = std::string("lightSource[") + std::to_string(light_idx++) + "]";
+                Shader::setUniform(tiledPbrLightingShader.uniform(lightSource + ".position"), light.position);
+                Shader::setUniform(tiledPbrLightingShader.uniform(lightSource + ".color"), light.color);
+            }
+        }
+    }
+#endif
 
     // Copy depth buffer from gBuffer
     glBindFramebuffer(GL_READ_FRAMEBUFFER, gBuffer);

@@ -71,14 +71,14 @@ scene:
  - <node-name>:
    type: entity
    components:
-     - <component-type>: <component attributes>
+     <component-type>: <component attributes>
    children:
-     - <node-name>: ...
+     <node-name>: ...
      ...
  - <node-name>:
    type: group
    children:
-     - <node-name>: ...
+     <node-name>: ...
     ...
 ```
 
@@ -95,10 +95,12 @@ A group node is a collection of nodes. This does not exist at runtime and is use
   type: group
   comment: <optional description/comment, used in the editor>
   defaults:
-    <component name:
+    <component name>:
         <component>
+        ...
   children:
-    <list of child nodes>
+    <child node>
+    ...
 ```
 
 ### entity
@@ -114,9 +116,11 @@ Transformation components represent the location of the entity in the scenes 2D 
   type: entity
   comment: <optional description/comment, used in the editor>
   components:
-    <list of components>
+    <component>
+    ...
   children:
-    <list of child nodes>
+    <child node>
+    ...
 ```
 
 Each component is has the name of the component as the key and the value is a map of attributes. For example, a `position` component might have an `x` and `y` attribute and would be defined as follows:
@@ -136,18 +140,18 @@ player:
   type: entity
   comment: The player character
   components:
-    - position: x=10 y=0
-    - sprite:
-       image: images/default-character.png
-    - rigid-body:
+    position: x=10 y=0
+    sprite:
+      image: images/default-character.png
+    rigid-body:
       shape:
         box2d: [0.5, 0.2]
   children:
-    - weapon:
+    weapon:
       type: entity
       components:
-        - position: x=0.2 y=0.3 # Relative to parent!
-        - sprite:
+        position: x=0.2 y=0.3 # Relative to parent!
+        sprite:
           image: images/default-weapon.png
 ```
 
@@ -166,7 +170,8 @@ Template nodes can also be dynamically instantiated at runtime throuwh spawner c
     - <attribute name>: <attribute value>
       ...
   children:
-    <list of children>
+    <child>
+    ...
 ```
 
 **Limitation:** currently, the node name of a template node must be unique (for template nodes) within the file in which it is found (scene file or template source file). Defining multiple template nodes with the same node name will cause scene loading to fail. The same node name used by a template node *may* be used for entity or group nodes.
@@ -183,7 +188,8 @@ template:
   comment: <optional description/comment, used in the editor>
   <type specific attributes>
   children:
-    <list of children>
+    <child>
+    ...
 ```
 
 Attribute placeholders are defined by setting their values as `$(attribute name: default value)` or `$(attribute name)`.
@@ -194,14 +200,14 @@ template:
   type: entity
   comment: Template for characters.
   components:
-    - position: x=$(position-x) y=$(position-y)
-    - sprite:
+    position: x=$(position-x) y=$(position-y)
+    sprite:
        image: $(sprite-image: images/default-character.png)
-    - rigid-body:
+    rigid-body:
       shape:
         box2d: [0.5, 0.2]
   children:
-    - weapon:
+    weapon:
       type: entity
       components:
         - position: x=0.2 y=0.3 # Relative to parent!
@@ -212,7 +218,7 @@ template:
 Example of scene using this template:
 ```
 scene:
-  - player:
+  player:
     type: template
     source: mycharacter.yml
     instances:
@@ -221,7 +227,7 @@ scene:
         sprite-image: images/overridden-character.png
         weapon-image: images/overridden-weapon.png
     children:
-      - hat:
+      hat:
         type: entity
         components:
           - position: x=0 y=1
@@ -243,6 +249,18 @@ location:
   z: <z position within the layer>
   layer: <background, playfield, foreground>
 ```
+
+Position of the entity in the scene.
+
+ * **orientation**
+```
+orientation:
+  x: <x position in the scene>
+  y: <y position in the scene>
+  z: <z position within the layer>
+```
+
+The direction in which the entity is oriented in the scene.
 
  * **trigger-region**
 ```
@@ -304,6 +322,23 @@ global: Yes
 
 This component causes this entity to remain in the scene even when scenes are changed and it does NOT get reloaded if the original scene is loaded again.
 This does NOT cause any child entities to be global, if child entities should be global too, then they must be individually marked as global.
+
+ * **model**
+```
+model:
+  - mesh: <mesh data>
+    material: <material data>
+```
+
+A model is a collection of meshes to be rendered. Each mesh has an optional material.
+
+ * **light-source**
+```
+light-source:
+  type: <point-light, spot-light>
+  color: <color data>
+  shadow-caster: <Yes or No>
+```
 
 ## Component Data
 
@@ -373,13 +408,14 @@ mesh:
   ref: <unique resource id for mesh>
 
 mesh:
-  source: <OBJ source file for mesh>
+  source: <.mesh source file for mesh (if 'x.mesh', will load 'x.mesh' if found or 'x.mesh.yaml' if not found)>
 
 mesh:
  primitive: <'point', 'line', 'line-strip', 'triangle', 'triangle-strip' or 'triangle-fan'>
  vertices:
-   - <[x, y] of vertex>
+   - <[[position.x, position.y, position.z], [normal.x, normal.y, normal.z], [u, v]] of vertex>
    ...
+ indices: <[list] of vertex indices>
 ```
 
  * **Event data**
