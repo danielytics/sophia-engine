@@ -42,6 +42,7 @@ Engine Dependencies:
 * [FastNoiseSIMD](https://github.com/Auburns/FastNoiseSIMD) - Library of various SIMD-optimised noise functions (MIT License, note: Simplex noise is patent-encumbered when used for texture generation)
 * [PhysicsFS](http://icculus.org/physfs/) - Library for filesystem abstraction (zlib License)
 * [PhysFS++](https://github.com/kahowell/physfs-cpp) - C++ wrapper for PhysicsFS ([zlib License + notes](https://github.com/kahowell/physfs-cpp/blob/master/LICENSE.txt))
+* [EASTL](https://github.com/electronicarts/EASTL) - Alternative to C++ Standard Library, optimised for games ([Modified BSD License (3-Clause BSD license)](https://github.com/electronicarts/EASTL/blob/master/LICENSE)) - Optional dependency
 
 Editor Dependencies:
 
