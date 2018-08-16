@@ -6,6 +6,7 @@ CONFIG -= qt
 # Select modules
 #################################
 PHYSICS_ENGINE = BULLET
+STD_LIB = EASTL # STD
 #################################
 
 # General configuration
@@ -17,12 +18,19 @@ INCLUDEPATH += include \
                depends/glm-0.9.7.4/include \
 			   depends/spdlog/include \
 			   depends/entt/src \
-			   depends/physfs-cpp/include
+			   depends/physfs-cpp/include \
+			   depends/EASTL/test/packages/EABase/include/Common \ # A bizarre EASTL dependency setup...
+			   depends/EASTL/include
 #			   depends/assimp-4.1.0/include
 
 QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
 QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME -DDEBUG_BUILD
 #QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
+
+contains(STD_LIB, EASTL) {
+	QMAKE_CXXFLAGS_RELEASE += -DUSE_EASTL
+	QMAKE_CXXFLAGS_DEBUG += -DUSE_EASTL
+}
 
 # Conditionally add source files depending on selected physics engine
 #################################
@@ -51,6 +59,7 @@ macx {
 			-L/usr/local/Cellar/glew/2.1.0/lib -lGLEW \
 			-L/usr/local/Cellar/physfs/3.0.1/lib -lphysfs \
 			-L/usr/local/Cellar/tbb/2018_U3_1/lib -ltbb \
+			-L$$PWD/depends/EASTL/build -lEASTL \
 			-lyaml-cpp \
 			-lluajit-5.1
 #			$$PWD/depends/assimp-4.1.0/lib/libassimp.dylib
@@ -78,7 +87,8 @@ unix:!macx {
 SOURCES += depends/physfs-cpp/src/physfs.cpp \ # Using the static library causes symbol mismatch unless same compiler is used
     src/util/Helpers.cpp \
     src/ecs/Loader.cpp \
-    src/graphics/Model.cpp
+    src/graphics/Model.cpp \
+    src/ecs/ctors/Transform.cpp
 
 # Project Files
 #################################
@@ -149,4 +159,6 @@ HEADERS += \
     include/ecs/components/AABB.h \
     include/ecs/components/Material.h \
     include/ecs/components/Mesh.h \
-    include/ecs/components/Transform.h
+    include/ecs/components/Transform.h \
+    include/ecs/ctors/Transform.h \
+    include/ecs/ctors/Component.h

@@ -18,7 +18,7 @@ telemetry:
     dev_mode: Yes
     # Is logging enabled? Valid values are: No or one of "trace", "debug", "info", "warn", "error"
     # In release builds, trace and debug are ignored.
-    logging: info
+    logging: debug
 
 # Configure the game
 game:

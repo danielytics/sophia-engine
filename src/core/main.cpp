@@ -21,6 +21,20 @@
 
 #include "physics/Engine.h"
 
+#ifdef USE_EASTL
+// Declare new operators as needed by EASTL
+#include <new>
+#include <xmmintrin.h> // needed for _mm_malloc
+void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+    return ::operator new(size);
+}
+void* operator new[](size_t size, size_t alignment, size_t alignmentOffset, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
+{
+    return _mm_malloc(size, alignment); // Handle alignmentOffset?
+}
+#endif
+
 void setupPhysFS (const char* argv0, const YAML::Node& config)
 {
     PhysFS::init(argv0);

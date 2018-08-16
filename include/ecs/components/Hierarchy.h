@@ -1,7 +1,7 @@
 #ifndef ECS_HIERARCHY_H
 #define ECS_HIERARCHY_H
 
-#include <vector>
+#include "lib.h"
 #include "entt/entity/registry.hpp"
 
 namespace ecs {
@@ -12,7 +12,7 @@ struct Parent
 };
 
 struct Children {
-    std::vector<entt::DefaultRegistry::entity_type> children;
+    lib::vector<entt::DefaultRegistry::entity_type> children;
 };
 
 }

@@ -35,7 +35,7 @@ void SpritePool::init (const Shader_t& spriteShader)
     glBindBuffer(GL_TEXTURE_BUFFER, tbo);
     glGenTextures(1, &tbo_tex);
     glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
-    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3), 0, GL_STREAM_DRAW); // This will get replaced on the first update
+    glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3), nullptr, GL_STREAM_DRAW); // This will get replaced on the first update
     glBindBuffer(GL_TEXTURE_BUFFER, 0);
     checkErrors();
 
@@ -50,7 +50,7 @@ void SpritePool::update (const std::vector<Sprite>& sprites)
 {
     if (spriteCount != sprites.size()) {
         if (spriteCount != 0) { // If this isn't the first update, then warn that the size has changed
-            warn("SpritePool inited for {} sprites but {} sprites updated", spriteCount, sprites.size());
+            warn("SpritePool inited for {} sprites but {} sprites updated - this may have a performance impact", spriteCount, sprites.size());
         }
         spriteCount = unsigned(sprites.size());
         unsortedBuffer.reserve(spriteCount);
@@ -80,7 +80,7 @@ void SpritePool::render (const Rect& bounds)
         glBindBuffer(GL_TEXTURE_BUFFER, tbo);
         glBindTexture(GL_TEXTURE_BUFFER, tbo_tex);
         // Orphan old buffer and then load data into new buffer
-        glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteCount, 0, GL_STREAM_DRAW);
+        glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteCount, nullptr, GL_STREAM_DRAW);
         glBufferData(GL_TEXTURE_BUFFER, sizeof(glm::vec3) * spriteCount, reinterpret_cast<const float*>(sortedBuffer.data()), GL_STREAM_DRAW);
         glTexBuffer(GL_TEXTURE_BUFFER, GL_R32F, tbo);
         glBindBuffer(GL_TEXTURE_BUFFER, 0);

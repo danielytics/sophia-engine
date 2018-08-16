@@ -241,26 +241,24 @@ scene:
 
 Below is a list of built-in components.
 
- * **location**
+ * **transform**
 ```
-location:
-  x: <x position in the scene>
-  y: <y position in the scene>
-  z: <z position within the layer>
-  layer: <background, playfield, foreground>
-```
-
-Position of the entity in the scene.
-
- * **orientation**
-```
-orientation:
-  x: <x position in the scene>
-  y: <y position in the scene>
-  z: <z position within the layer>
+transform:
+  position:
+    x: <x position in the scene>
+    y: <y position in the scene>
+    z: <z position in the scene>
+  rotation:
+    x: <amount of rotation around the x axis, from no rotation (0.0) to full rotation (1.0)>
+    y: <amount of rotation around the y axis, from no rotation (0.0) to full rotation (1.0)>
+    z: <amount of rotation around the z axis, from no rotation (0.0) to full rotation (1.0)>
+  scale:
+    x: <amount of scaling on the x axis>
+    y: <amount of scaling on the y axis>
+    z: <amount of scaling on the z axis>
 ```
 
-The direction in which the entity is oriented in the scene.
+Position, orientation and scale factor of the entity in the scene.
 
  * **trigger-region**
 ```

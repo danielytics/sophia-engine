@@ -1,74 +1,51 @@
-
 #include "ecs/Loader.h"
-#include "entt/entt.hpp"
+
 #include "util/Config.h"
 #include "util/Logging.h"
+#include "util/Helpers.h"
+
+#include "entt/entt.hpp"
 
 #include "ecs/components/Hierarchy.h"
 #include "ecs/components/TimeAware.h"
 
-#include <glm/gtc/matrix_transform.hpp>
+#include "ecs/ctors/Transform.h"
 
 using namespace ecs::loader;
 
-#include "ecs/components/Transform.h"
-
 ComponentCtor::~ComponentCtor() {}
 
-class LocationComponentCtor : public ComponentCtor {
-public:
-    void construct (const entt::DefaultRegistry::entity_type& entity, const YAML::Node& config, entt::DefaultRegistry& registry);
+lib::map<std::string, ComponentCtor*> EntityLoader::constructors {
+    {"transform", new TransformComponentCtor},
 };
 
-void LocationComponentCtor::construct (const entt::DefaultRegistry::entity_type& entity, const YAML::Node& config, entt::DefaultRegistry& registry) {
-    glm::vec3 translation;
-    glm::vec3 rotation;
-    auto parser = Config::make_parser(
-                Config::optional(
-                    Config::map("position",
-                        Config::scalar("x", translation.x),
-                        Config::scalar("y", translation.y),
-                        Config::scalar("z", translation.z)),
-                    Config::map("rotation",
-                        Config::scalar("x", rotation.x),
-                        Config::scalar("y", rotation.y),
-                        Config::scalar("z", rotation.z))
-                )
-    );
-    parser(config);
+EntityLoader::EntityLoader (entt::DefaultRegistry& registry)
+    : registry(registry)
+{
 
-    // Create transformation matrix
-    glm::mat4 transform(1.0);
-    transform = glm::rotate(transform, glm::radians(rotation.x * 360.0f), glm::vec3(1, 0, 0));
-    transform = glm::rotate(transform, glm::radians(rotation.y * 360.0f), glm::vec3(0, 1, 0));
-    transform = glm::rotate(transform, glm::radians(rotation.z * 360.0f), glm::vec3(0, 0, 1));
-    transform = glm::translate(transform, translation);
-    // Assign transformation component with transformation matrix to entity
-    registry.assign<ecs::Transform>(entity, transform);
 }
 
-
-std::map<std::string, ComponentCtor*> EntityLoader::constructors {
-    {"transform", new LocationComponentCtor},
-};
-
-void EntityLoader::loadScene (const YAML::Node& sceneConfig)
+EntityLoader::~EntityLoader ()
 {
-    std::map<std::string, entt::DefaultRegistry::entity_type> entities;
-    entt::DefaultRegistry registry;
 
+}
+
+void EntityLoader::loadScene (const std::string& sceneFile)
+{
     auto parser = Config::make_parser(
-                Config::fn("scene", [&registry, this](const YAML::Node scene) {
-                    loadScene(scene, registry);
+                Config::fn("scene", [this](const YAML::Node scene) {
+                    for (auto& blueprint : loadScene(scene)) {
+                        instantiate(blueprint);
+                    }
                     return Config::Success;
                 })
     );
-    parser(sceneConfig);
+    parser(YAML::Load(Helpers::readToString(sceneFile)));
 }
 
-std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadScene (YAML::Node scene, entt::DefaultRegistry& registry)
+lib::vector<EntityBlueprint> EntityLoader::loadScene (YAML::Node scene)
 {
-    std::vector<entt::DefaultRegistry::entity_type> entity_ids;
+    lib::vector<EntityBlueprint> blueprints;
     if (scene.IsMap()) {
         for (auto it = scene.begin(); it != scene.end(); ++it) {
             auto name = it->first;
@@ -80,25 +57,26 @@ std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadScene (YAML::N
                     if (node_type.IsScalar()) {
                         auto type = node_type.as<std::string>();
                         if (type == "group") {
-                            auto group = loadGroup(nodeName, node, registry);
-                            entity_ids.insert(entity_ids.end(), group.begin(), group.end());
+                            auto group = loadGroup(nodeName, node);
+                            Helpers::move_back(group, blueprints);
                         } else if (type == "entity") {
-                            entity_ids.push_back(loadEntity(nodeName, node, registry));
+                            blueprints.push_back(loadEntity(nodeName, node));
                         } else if (type == "template") {
-
+                            blueprints.push_back(loadTemplate(nodeName, node));
                         }
                     }
                 }
             }
         }
     }
-    return entity_ids;
+    return blueprints;
 }
 
-entt::DefaultRegistry::entity_type EntityLoader::loadEntity (const std::string& entityName, const YAML::Node& entityConfig, entt::DefaultRegistry& registry)
+EntityBlueprint EntityLoader::loadEntity (const std::string& entityName, const YAML::Node& entityConfig)
 {
     auto entity = registry.create();
     entities.emplace(entityName, entity);
+    auto prototype = entt::DefaultPrototype(registry);
 
 #ifdef DEBUG_BUILD
     auto component_comment = entityConfig["comment"];
@@ -120,30 +98,24 @@ entt::DefaultRegistry::entity_type EntityLoader::loadEntity (const std::string& 
                 if (iter != constructors.end()) {
                     // Construct new component and add it to entity
                     iter->second->construct(entity, component_data, registry);
+                    iter->second->construct(prototype, component_data);
                 }
             }
         }
     }
 
-    // Add TimeAware, if not manually added
-    if (! registry.has<TimeAware>(entity)) {
-        registry.assign<TimeAware>(1.0f);
-    }
-
-    // Load children scene and setup parent-child hierarchy
+    // Add child scenes and setup parent-child hierarchy
+    lib::vector<EntityBlueprint> child_entities;
     auto children_node = entityConfig["children"];
     if (children_node.IsMap()) {
-        auto children = loadScene(children_node, registry);
-        for (auto child : children) {
-            registry.assign<ecs::Parent>(child, Parent{entity});
-        }
-        registry.assign<ecs::Children>(entity, Children{children});
+        auto children = loadScene(children_node);
+        Helpers::move_back(children, child_entities);
     }
 
-    return entity;
+    return EntityBlueprint{lib::move(prototype), lib::move(child_entities)};
 }
 
-std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadGroup (const std::string& groupName, const YAML::Node& groupConfig, entt::DefaultRegistry& registry)
+lib::vector<EntityBlueprint> EntityLoader::loadGroup (const std::string& groupName, const YAML::Node& groupConfig)
 {
 #ifdef DEBUG_BUILD
     auto group_comment = groupConfig["comment"];
@@ -154,11 +126,11 @@ std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadGroup (const s
     }
 #endif
 
-    std::vector<entt::DefaultRegistry::entity_type> group;
+    lib::vector<EntityBlueprint> group;
     auto children_node = groupConfig["children"];
     if (children_node.IsMap()) {
         // Load group scene
-        group = loadScene(children_node, registry);
+        group = loadScene(children_node);
         // Add default components to group members
         auto defaults_node = groupConfig["defaults"];
         if (defaults_node.IsMap()) {
@@ -169,8 +141,8 @@ std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadGroup (const s
                     auto iter = constructors.find(component_name.as<std::string>());
                     if (iter != constructors.end()) {
                         // Construct new component and add it to the entities in the group
-                        for (auto entity : group) {
-                            iter->second->construct(entity, component_data, registry);
+                        for (auto& blueprint : group) {
+                            iter->second->construct(blueprint.prototype, component_data);
                         }
                     }
                 }
@@ -178,6 +150,85 @@ std::vector<entt::DefaultRegistry::entity_type> EntityLoader::loadGroup (const s
         }
     }
     return group;
+}
+
+EntityBlueprint EntityLoader::loadTemplate (const std::string& templateName, const YAML::Node& templateConfig)
+{
+    auto source_node = templateConfig["source"];
+    if (source_node.IsScalar()) {
+        auto source = source_node.as<std::string>();
+#ifdef DEBUG_BUILD
+        auto group_comment = templateConfig["comment"];
+        if (group_comment.IsScalar()) {
+            debug("Loading template: {}:{} - {}", templateName, source, group_comment.as<std::string>());
+        } else {
+            debug("Loading template: {}:{}", templateName, source);
+        }
+#endif
+
+        // Load entity from template source file.
+        auto blueprint = loadTemplate(source, templateName);
+
+        // Add children, if any
+        auto children_node = templateConfig["children"];
+        if (children_node.IsMap()) {
+            auto children = loadScene(children_node);
+            Helpers::move_back(children, blueprint.children);
+        }
+
+        // TODO: Instantiate instances
+
+        return blueprint;
+    } else {
+        warn("Error loading template {}: No source specified", templateName);
+        return EntityBlueprint{lib::move(entt::DefaultPrototype{registry}), lib::vector<EntityBlueprint>{}}; // throw instead?
+    }
+}
+
+EntityBlueprint EntityLoader::loadTemplate (const std::string& templateSourceFile, const std::string& templateName)
+{
+    lib::vector<EntityBlueprint> blueprints;
+    auto parser = Config::make_parser(
+                Config::fn("template", [this,templateName,&blueprints](const YAML::Node node) {
+                    if (node.IsMap()) {
+                        auto node_type = node["type"];
+                        if (node_type.IsScalar()) {
+                            auto type = node_type.as<std::string>();
+                            if (type == "entity") {
+                                blueprints.push_back(loadEntity(templateName, node));
+                            } else if (type == "template") {
+                                blueprints.push_back(loadTemplate(templateName, node));
+                            } else {
+                                warn("Invalid template type: {}", type);
+                            }
+                        }
+                    }
+                    return Config::Success;
+                })
+    );
+    parser(YAML::Load(Helpers::readToString(templateSourceFile)));
+    if (blueprints.size() != 0) {
+        error("Failed to load template {} from file: {}", templateName, templateSourceFile);
+        return EntityBlueprint{lib::move(entt::DefaultPrototype{registry}), lib::vector<EntityBlueprint>{}}; // throw insteadm?
+    } else {
+        return EntityBlueprint{lib::move(blueprints[0].prototype), lib::move(blueprints[0].children)};
+    }
+}
+
+entity_t EntityLoader::instantiate (const EntityBlueprint& blueprint)
+{
+    entity_t entity = blueprint.prototype.create();
+    if (! registry.has<TimeAware>(entity)) {
+        registry.assign<TimeAware>(1.0f);
+    }
+    lib::vector<entity_t> children;
+    for (auto& child_blueprint : blueprint.children) {
+        entity_t child = instantiate(child_blueprint); // recursively create child entitiies
+        registry.assign<ecs::Parent>(child, Parent{entity});
+        children.push_back(child);
+    }
+    registry.assign<ecs::Children>(entity, Children{children});
+    return entity;
 }
 
 #if 0

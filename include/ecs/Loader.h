@@ -1,37 +1,40 @@
 #ifndef LOADER_H
 #define LOADER_H
 
-#include "util/Config.h"
-#include "entt/entity/registry.hpp"
+#include "lib.h"
+#include <string>
 
-/*
-
-root:
-  type: group
-  children:
-    - level
-
-*/
+#include "ctors/Component.h"
 
 namespace ecs::loader {
 
-class ComponentCtor {
-public:
-    virtual ~ComponentCtor();
-    virtual void construct (const entt::DefaultRegistry::entity_type& entity, const YAML::Node& config, entt::DefaultRegistry& registry) = 0;
+struct EntityBlueprint {
+    entt::DefaultPrototype prototype;
+    lib::vector<EntityBlueprint> children;
 };
+
+using entity_t = entt::DefaultRegistry::entity_type;
 
 class EntityLoader {
 public:
-    void loadScene (const YAML::Node& sceneConfig);
-    std::vector<entt::DefaultRegistry::entity_type> loadScene (YAML::Node scene, entt::DefaultRegistry& registry);
-    std::vector<entt::DefaultRegistry::entity_type> loadGroup (const std::string& groupName, const YAML::Node& groupConfig, entt::DefaultRegistry& registry);
-    entt::DefaultRegistry::entity_type loadEntity (const std::string& entityName, const YAML::Node& entityConfig, entt::DefaultRegistry& registry);
+    EntityLoader (entt::DefaultRegistry& registry);
+    ~EntityLoader ();
+
+    void loadScene (const std::string& sceneFile);
+    lib::vector<EntityBlueprint> loadScene (YAML::Node scene);
+    lib::vector<EntityBlueprint> loadGroup (const std::string& groupName, const YAML::Node& groupConfig);
+    EntityBlueprint loadEntity (const std::string& entityName, const YAML::Node& entityConfig);
+    EntityBlueprint loadTemplate (const std::string& templateName, const YAML::Node& entityConfig);
+
+    entity_t instantiate (const EntityBlueprint& blueprint);
 
 private:
-    std::map<std::string, entt::DefaultRegistry::entity_type> entities;
+    EntityBlueprint loadTemplate (const std::string& templateSourceFile, const std::string& templateName);
 
-    static std::map<std::string, ComponentCtor*> constructors;
+    entt::DefaultRegistry& registry;
+    lib::map<std::string, entt::DefaultRegistry::entity_type> entities;
+
+    static lib::map<std::string, ComponentCtor*> constructors;
 };
 
 }
