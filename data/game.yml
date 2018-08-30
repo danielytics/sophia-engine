@@ -2,5 +2,8 @@ game:
     name: Test Game
     start: 1
     scenes:
-        1:
-            scene: scene1.yml
+      - name: Test scene
+        source: scene1.yml
+        resources: scene1-resources.yml
+        attributes:
+            render-layer: 0

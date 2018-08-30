@@ -20,8 +20,10 @@ public:
     EntityLoader (entt::DefaultRegistry& registry);
     ~EntityLoader ();
 
+    void load(const YAML::Node& config);
+
     void loadScene (const std::string& sceneFile);
-    lib::vector<EntityBlueprint> loadScene (YAML::Node scene);
+    lib::vector<EntityBlueprint> loadScene (const YAML::Node& scene);
     lib::vector<EntityBlueprint> loadGroup (const std::string& groupName, const YAML::Node& groupConfig);
     EntityBlueprint loadEntity (const std::string& entityName, const YAML::Node& entityConfig);
     EntityBlueprint loadTemplate (const std::string& templateName, const YAML::Node& entityConfig);

@@ -4,6 +4,7 @@
 #include "util/Telemetry.h"
 #include "util/Config.h"
 #include "util/Helpers.h"
+#include "util/Clock.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "util/stb_image.h"
@@ -28,10 +29,6 @@
 #include <random>
 
 #include <stdexcept>
-#include <chrono>
-typedef std::chrono::high_resolution_clock Clock;
-typedef float Time_t;
-typedef std::chrono::duration<Time_t> Time;
 
 const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
@@ -280,9 +277,10 @@ Test setupTest() {
     };
 }
 
-Window::Window ()
+Window::Window (DeferredRenderer& renderer)
     : ready(false)
     , window(nullptr)
+    , renderer(renderer)
 {
     // Initialize SDL's Video subsystem
     if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -369,6 +367,7 @@ void Window::open (const std::string& title, const YAML::Node& config_node)
     } else {
         info("Debug rendering disabled");
     }
+    renderer.setDebugRendering(debugMode);
 #endif
 
     // Set the OpenGL attributes for our context
@@ -525,12 +524,6 @@ void Window::run ()
 //    Uniform_t u_shadow_model = test.shadows.uniform("model");
 //    Uniform_t u_lightspace = test.shadows.uniform("lightSpaceMatrix");
 
-
-#ifdef DEBUG_BUILD
-    DeferredRenderer renderer(debugMode);
-#else
-    DeferredRenderer renderer(false);
-#endif
     renderer.init(width, height);
 
     renderer.updateSprites(spriteData);

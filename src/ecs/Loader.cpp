@@ -8,6 +8,7 @@
 
 #include "ecs/components/Hierarchy.h"
 #include "ecs/components/TimeAware.h"
+#include "ecs/components/Labels.h"
 
 #include "ecs/ctors/Transform.h"
 
@@ -17,6 +18,8 @@ ComponentCtor::~ComponentCtor() {}
 
 lib::map<std::string, ComponentCtor*> EntityLoader::constructors {
     {"transform", new TransformComponentCtor},
+    {"dynamic-shadow", new ecs::loader::LabelCtor<ecs::labels::dynamic_shadow>()},
+    {"shadow-caster", new ecs::loader::LabelCtor<ecs::labels::shadow_caster>()},
 };
 
 EntityLoader::EntityLoader (entt::DefaultRegistry& registry)
@@ -30,10 +33,34 @@ EntityLoader::~EntityLoader ()
 
 }
 
+void EntityLoader::load(const YAML::Node& config)
+{
+    struct Scene {
+        std::string name;
+        std::string source;
+        std::string resources;
+        lib::map<std::string, std::string> attributes;
+    };
+    lib::vector<Scene> scenes;
+    Scene temp;
+    auto parser = Config::make_parser(
+                Config::map("game",
+                    Config::sequence("scenes",
+                      temp, scenes,
+                      Config::scalar("name", temp.name),
+                      Config::scalar("source", temp.source),
+                      Config::scalar("resources", temp.resources))));
+    parser(config);
+    for (auto scene : scenes) {
+        info("Loading scene '{}' from '{}'", scene.name, scene.source);
+        loadScene(scene.source);
+    }
+}
+
 void EntityLoader::loadScene (const std::string& sceneFile)
 {
     auto parser = Config::make_parser(
-                Config::fn("scene", [this](const YAML::Node scene) {
+                Config::fn("scene", [this](const YAML::Node& scene) {
                     for (auto& blueprint : loadScene(scene)) {
                         instantiate(blueprint);
                     }
@@ -43,7 +70,7 @@ void EntityLoader::loadScene (const std::string& sceneFile)
     parser(YAML::Load(Helpers::readToString(sceneFile)));
 }
 
-lib::vector<EntityBlueprint> EntityLoader::loadScene (YAML::Node scene)
+lib::vector<EntityBlueprint> EntityLoader::loadScene (const YAML::Node& scene)
 {
     lib::vector<EntityBlueprint> blueprints;
     if (scene.IsMap()) {
@@ -65,9 +92,15 @@ lib::vector<EntityBlueprint> EntityLoader::loadScene (YAML::Node scene)
                             blueprints.push_back(loadTemplate(nodeName, node));
                         }
                     }
+                } else {
+                    warn("Scene node '{}' not an object", nodeName);
                 }
+            } else {
+                warn("Scene node name is not a scalar");
             }
         }
+    } else {
+        warn("Scene must be an object where keys are node names and values are the nodes");
     }
     return blueprints;
 }
@@ -97,7 +130,6 @@ EntityBlueprint EntityLoader::loadEntity (const std::string& entityName, const Y
                 auto iter = constructors.find(component_name.as<std::string>());
                 if (iter != constructors.end()) {
                     // Construct new component and add it to entity
-                    iter->second->construct(entity, component_data, registry);
                     iter->second->construct(prototype, component_data);
                 }
             }
@@ -176,7 +208,14 @@ EntityBlueprint EntityLoader::loadTemplate (const std::string& templateName, con
             Helpers::move_back(children, blueprint.children);
         }
 
-        // TODO: Instantiate instances
+        // Instantiate instances
+        auto instances_node = templateConfig["instances"];
+        if (instances_node.IsSequence()) {
+            for (auto instance : instances_node) {
+                // TODO: pass instance attributes to new instance
+                instantiate(blueprint);
+            }
+        }
 
         return blueprint;
     } else {

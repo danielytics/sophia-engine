@@ -4,76 +4,33 @@
 #include <glm/gtc/constants.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 
-void TransformComponentCtor::construct (const entt::DefaultRegistry::entity_type& entity, const YAML::Node& config, entt::DefaultRegistry& registry) {
-    glm::vec3 translation;
-    glm::vec3 rotation;
-    glm::vec3 scale;
-    auto parser = Config::make_parser(
-                Config::optional(
-                    Config::map("position",
-                        Config::scalar("x", translation.x),
-                        Config::scalar("y", translation.y),
-                        Config::scalar("z", translation.z)),
-                    Config::map("rotation",
-                        Config::scalar("x", rotation.x),
-                        Config::scalar("y", rotation.y),
-                        Config::scalar("z", rotation.z)),
-                    Config::map("scale",
-                        Config::scalar("x", scale.x),
-                        Config::scalar("y", scale.y),
-                        Config::scalar("z", scale.z))
-                )
-    );
-    parser(config);
+#include "util/Helpers.h"
+#include "util/Logging.h"
 
-    // Create transformation matrix
-    auto two_pi = glm::pi<float>() * 2.0f;
-    glm::mat4 transform(1.0);
-    transform = glm::scale(transform, scale);
-    transform = glm::rotate(transform, rotation.x * two_pi, glm::vec3(1, 0, 0));
-    transform = glm::rotate(transform, rotation.y * two_pi, glm::vec3(0, 1, 0));
-    transform = glm::rotate(transform, rotation.z * two_pi, glm::vec3(0, 0, 1));
-    transform = glm::translate(transform, translation);
-    // Assign transformation component with transformation matrix to entity
-    auto component = registry.assign<ecs::Transform>(entity, transform);
+#include <vector>
+
+glm::vec3 toVec (const std::vector<float>& in) {
+    return glm::vec3(in[0], in[1], in[2]);
 }
 
 void TransformComponentCtor::construct (entt::DefaultPrototype& prototype, const YAML::Node& config)
 {
-    glm::vec3 translation;
-    glm::vec3 rotation;
-    glm::vec3 scale;
+    std::vector<float> translation;
+    std::vector<float> rotation;
+    std::vector<float> scale;
     auto parser = Config::make_parser(
-                Config::optional(
-                    Config::map("position",
-                        Config::scalar("x", translation.x),
-                        Config::scalar("y", translation.y),
-                        Config::scalar("z", translation.z)),
-                    Config::map("rotation",
-                        Config::scalar("x", rotation.x),
-                        Config::scalar("y", rotation.y),
-                        Config::scalar("z", rotation.z)),
-                    Config::map("scale",
-                        Config::scalar("x", scale.x),
-                        Config::scalar("y", scale.y),
-                        Config::scalar("z", scale.z))
-                )
+                Config::optional(Config::sequence("position", translation)),
+                Config::optional(Config::sequence("rotation", rotation)),
+                Config::optional(Config::sequence("scale", scale))
     );
     parser(config);
 
-    // Create transformation matrix
+    Helpers::pad_with(translation, 3, 0.0f);
+    Helpers::pad_with(rotation, 3, 0.0f);
+    Helpers::pad_with(scale, 3, 1.0f);
+
     auto two_pi = glm::pi<float>() * 2.0f;
-    glm::mat4 transform(1.0);
-    transform = glm::scale(transform, scale);
-    transform = glm::rotate(transform, rotation.x * two_pi, glm::vec3(1, 0, 0));
-    transform = glm::rotate(transform, rotation.y * two_pi, glm::vec3(0, 1, 0));
-    transform = glm::rotate(transform, rotation.z * two_pi, glm::vec3(0, 0, 1));
-    transform = glm::translate(transform, translation);
-    // Assign transformation component with transformation matrix to entity
-    prototype.set<ecs::Transform>(transform);
+    lib::transform(rotation.begin(), rotation.end(), rotation.begin(), [two_pi](auto x){return x * two_pi;});
+    prototype.set<ecs::Transform>(toVec(translation), toVec(scale), toVec(rotation));
 }
 
-struct ComponentTemplate {
-    unsigned size;
-    void* buffer;
-};

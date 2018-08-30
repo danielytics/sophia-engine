@@ -1,7 +1,12 @@
 #include "graphics/DeferredRenderer.h"
 #include "graphics/Debug.h"
 #include "util/Logging.h"
+#include "util/Helpers.h"
+#include "util/Profiling.h"
 #include "math/Types.h"
+
+#include "tbb/parallel_for.h"
+#include "tbb/blocked_range.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -17,9 +22,10 @@ std::map<GLenum,std::string> GL_ERROR_STRINGS = {
 };
 
 
-DeferredRenderer::DeferredRenderer(bool enabledDebugRendering)
+DeferredRenderer::DeferredRenderer()
+//    : graphics::Renderer ()
 #ifdef DEBUG_BUILD
-    : debugRenderingEnabled(enabledDebugRendering)
+    : debugRenderingEnabled(false)
 #endif
 {
 
@@ -28,6 +34,13 @@ DeferredRenderer::DeferredRenderer(bool enabledDebugRendering)
 DeferredRenderer::~DeferredRenderer()
 {
 
+}
+
+void DeferredRenderer::setDebugRendering (bool enabledDebugRendering)
+{
+#ifdef DEBUG_BUILD
+    debugRenderingEnabled = enabledDebugRendering;
+#endif
 }
 
 void DeferredRenderer::init (float width, float height, bool softInitialise)
@@ -88,7 +101,8 @@ void DeferredRenderer::init (float width, float height, bool softInitialise)
         gbufferBackgroundShader.bindUnfiromBlock("Matrices", 0);
 
         // Setup renderables
-        spritePool.init(gbufferSpriteShader);
+        spritePool = new SpritePool;
+        spritePool->init(gbufferSpriteShader);
     }
 
 
@@ -167,6 +181,7 @@ void DeferredRenderer::term (bool softTerminate)
     glDeleteBuffers(1, &gBufferAlbedo);
 
     if (! softTerminate) {
+        delete spritePool;
         glDeleteVertexArrays(1, &quadVAO);
         gbufferSpriteShader.unload();
         pbrLightingShader.unload();
@@ -199,7 +214,9 @@ struct LightSource {
 
 void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
 {
+    Profile(__FUNCTION__);
     glViewport(0, 0, screenWidth, screenHeight);
+
 
     // Render shadow casters to shadow maps
 
@@ -224,7 +241,7 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
     // Render solid objects
 
     gbufferSpriteShader.use();
-    spritePool.render(screenBounds);
+    spritePool->render(screenBounds);
     checkErrors();
 
     // Render background images
@@ -333,4 +350,93 @@ void DeferredRenderer::render (const Rect& screenBounds, const glm::mat4& view)
         glEnable(GL_DEPTH_TEST);
     }
 #endif
+}
+
+inline void sse_cull_spheres(lib::vector<glm::vec4>::const_iterator sphere_data, std::size_t num_objects, int* culling_res, const std::array<glm::vec4, 6>& frustum_planes)
+{
+    int* culling_res_sse = &culling_res[0];
+    //to optimize calculations we gather xyzw elements in separate vectors
+    __m128 zero_v = _mm_setzero_ps();
+    __m128 frustum_planes_x[6];
+    __m128 frustum_planes_y[6];
+    __m128 frustum_planes_z[6];
+    __m128 frustum_planes_d[6];
+    for (std::size_t i = 0; i < 6; ++i) {
+        frustum_planes_x[i] = _mm_set1_ps(frustum_planes[i].x);
+        frustum_planes_y[i] = _mm_set1_ps(frustum_planes[i].y);
+        frustum_planes_z[i] = _mm_set1_ps(frustum_planes[i].z);
+        frustum_planes_d[i] = _mm_set1_ps(frustum_planes[i].w);
+    }
+    //we process 4 objects per step
+    float temp[4][4];
+    for (std::size_t i = 0; i < num_objects; i += 4) {
+        //load bounding sphere data
+        for (std::size_t j = 0; j < 4; ++j) {
+            const glm::vec4& vec = *sphere_data++;
+            temp[0][j] = vec.x;
+            temp[1][j] = vec.y;
+            temp[2][j] = vec.z;
+            temp[3][j] = vec.w;
+        }
+        __m128 spheres_pos_x  = _mm_load_ps(temp[0]);
+        __m128 spheres_pos_y = _mm_load_ps(temp[1]);
+        __m128 spheres_pos_z = _mm_load_ps(temp[2]);
+        __m128 spheres_radius = _mm_load_ps(temp[3]);
+        //but for our calculations we need transpose data, to collect x, y, z and w coordinates in separate vectors
+        _MM_TRANSPOSE4_PS(spheres_pos_x, spheres_pos_y, spheres_pos_z, spheres_radius);
+        __m128 spheres_neg_radius = _mm_sub_ps(zero_v, spheres_radius); // negate all elements
+        __m128 intersection_res = _mm_setzero_ps();
+        for (int j = 0; j < 6; ++j) { //plane index
+            //1. calc distance to plane dot(sphere_pos.xyz, plane.xyz) + plane.w
+            //2. if distance < sphere radius, then sphere outside frustum
+            __m128 dot_x = _mm_mul_ps(spheres_pos_x, frustum_planes_x[j]);
+            __m128 dot_y = _mm_mul_ps(spheres_pos_y, frustum_planes_y[j]);
+            __m128 dot_z = _mm_mul_ps(spheres_pos_z, frustum_planes_z[j]);
+            __m128 sum_xy = _mm_add_ps(dot_x, dot_y);
+            __m128 sum_zw = _mm_add_ps(dot_z, frustum_planes_d[j]);
+            __m128 distance_to_plane = _mm_add_ps(sum_xy, sum_zw);
+            __m128 plane_res = _mm_cmple_ps(distance_to_plane, spheres_neg_radius); //dist < -sphere_r ?
+            intersection_res = _mm_or_ps(intersection_res, plane_res); //if yes - sphere behind the plane & outside frustum
+        }
+        //store result
+        __m128i intersection_res_i = _mm_cvtps_epi32(intersection_res);
+        _mm_store_si128(reinterpret_cast<__m128i*>(&culling_res_sse), intersection_res_i);
+    }
+}
+
+void DeferredRenderer::submitSprites (const graphics::RenderMode&& renderMode, lib::vector<glm::vec4>&& positions, lib::vector<graphics::SpriteInstance>&& instanceData)
+{
+    Profile(__FUNCTION__);
+    // perform frustum culling and package sprite data for rendering
+    std::size_t num_objects = positions.size();
+    // make sure num_objects is multiple of 4. Pad with null objects if not.
+    while ((positions.size() & 0x3) != 0) {
+        positions.push_back(glm::vec4());
+    }
+    size_t num_objects_to_cull = positions.size();
+    lib::vector<int> culling_results(num_objects_to_cull, 0);
+    std::array<glm::vec4, 6> frustum_planes;
+    {
+        Profile{"sprite frustum culling"};
+#if 0 // use tbb for parallel culling or not?
+        tbb::parallel_for(tbb::blocked_range<std::size_t>(0, num_objects_to_cull, /* set grainsize to a multiple of 4 */ 120), [positions,&culling_results,frustum_planes](const tbb::blocked_range<size_t>& range){
+            sse_cull_spheres(positions.begin() + range.begin(), range.end() - range.begin(), culling_results.data() + range.begin(), frustum_planes);
+        });
+#else
+        sse_cull_spheres(positions.begin(), num_objects_to_cull, culling_results.data(), frustum_planes);
+#endif
+    }
+    for (std::size_t i = 0; i < num_objects; ++i) {
+        if (culling_results[i]) {
+            Helpers::remove(positions, i);
+            Helpers::remove(instanceData, i);
+        }
+    }
+    info("Number of sprites culled: {}", num_objects - positions.size());
+    // queue sprite data for rendering
+}
+
+void DeferredRenderer::commit ()
+{
+
 }

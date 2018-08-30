@@ -49,17 +49,21 @@ The config file consists of a number of sections:
 ```
 game:
     name: <Name of the game>
-    start: <name of start scene>
     input:
         <action name>: <input type and default value>
     scenes:
-        <scene name>: <scene filename>
+        - name: <name of scene, optional>
+          source: <scene file name>
+          resources: <resource file name, optional>
+          attributes:
+            <attribute name>: <attribute value>
+            ...
+        ...
 ```
 
  * `name` is the name of the game, used to set the window title.
- * `start` is the name of the scene to start the game in (must be listed in `scenes`)
  * `input` lists the actions which are to be mapped to user input, input type specifies what type of input is supported (button, axis, analogue, touch etc). Default values are also specified, but may be overridden programmatically, eg by in-game input mappers. Overridden data is stored in a platform specific place.
- * `scenes` is a collection of key/value pairs where the key is the name of the scene and the value is a yaml file describing the scene (see `data/sceneX.yml`)
+ * `scenes` is a collection of objects representing each scene to be loaded, each scene must contain a source attribute naming the yaml file describing the scene (see `data/sceneX.yml`), all listed scenes are loaded and merged. Typically would only use one. A use case for using more than one is to have the GUI layer as a separate scene.
 
 ## data/sceneX.yml
 
@@ -68,21 +72,21 @@ Scenes can dynamically change at runtime, this file describes the load-time stat
 
 ```
 scene:
- - <node-name>:
+ <node-name>:
    type: entity
    components:
      <component-type>: <component attributes>
    children:
      <node-name>: ...
      ...
- - <node-name>:
+ <node-name>:
    type: group
    children:
      <node-name>: ...
     ...
 ```
 
-The root is always `scene` and contains a list of nodes. Each node has a name (the YAML key) a `type`, type specific attributes and `children`. Children is a list of child nodes (and have the same node structure).
+The root is always `scene` and contains a map of nodes. Each node has a name (the YAML key) a `type`, type specific attributes and `children`. Children is a list of child nodes (and have the same node structure).
 
 Available node types are: `group`, `entity` and `template`.
 
@@ -258,22 +262,44 @@ transform:
     z: <amount of scaling on the z axis>
 ```
 
-Position, orientation and scale factor of the entity in the scene.
+Position, orientation and scale factor of the entity in the scene. `rotation` and `scale` are optional, defaulting to `0.0, 0.0, 0.0` and `1.0, 1.0, 1.0` respectively.
 
  * **trigger-region**
 ```
 trigger-region:
   shape: <shape data>
-  event: <event data>
+  enter-event: <event data>
+  exit-event: <event data>
   triggers: <list of physics object types which trigger this region>
 ```
 
- * **rigid-body**
+A regtion which triggers events when a physics body enters or exits its defined shape.
+
+ * **static-body**
 ```
-rigid-body:
+static-body:
+  shape: <shape data>
+```
+
+A static physics body. Statics bodies can be collided with by other bodies, but do not themselves move.
+
+ * **dynamic-body**
+```
+dynamic-body:
   mass: <body mass>
   shape: <shape data>
 ```
+
+A dynamic physics body. Dynamic bodies are completely under the control of the physics engine.
+
+ * **kinematic-body**
+```
+kinematic-body:
+  mass: <body mass>
+  shape: <shape data>
+```
+
+A kinematic physics body. Kinematic bodies collide with other bodies, but their movement and collision response is externally controlled (eg by AI or user input).
 
  * **sprite**
 ```
@@ -315,7 +341,7 @@ This component causes all named components in this entity to be persisted when t
 
  * **global**
 ```
-global: Yes
+global:
 ```
 
 This component causes this entity to remain in the scene even when scenes are changed and it does NOT get reloaded if the original scene is loaded again.
@@ -335,8 +361,48 @@ A model is a collection of meshes to be rendered. Each mesh has an optional mate
 light-source:
   type: <point-light, spot-light>
   color: <color data>
-  shadow-caster: <Yes or No>
 ```
+
+ * **dynamic-shadow**
+```
+dynamic-shadow:
+```
+
+This object will project a dynamic shadow from shadow-caster sources.
+
+ * **shadow-caster**
+```
+shadow-caster:
+```
+
+This object is the source of dynamic shadows. Typically a light source.
+
+ * **shadow-map**
+```
+shadow-map:
+  shape: <shadow shape>
+```
+
+A pre-computed shadow map.
+
+ * **light-map**
+```
+light-map:
+  shape: <shape of cast light>
+  color: <color of light>
+  brightness: <float blend value>
+```
+
+A pre-computed light map.
+
+ * **time-aware**
+```
+time-aware:
+  time-scale: <scale factor>
+```
+
+Controls how the entity sees time. A `time-scale` value of `1.0` means that it sees time at normal speed, `0.5` means half-speed and `2.0` means double speed. All entities have this component, if omitted, a default with `time-scale` set to `1.0` is automatically added during scene loading.
+
 
 ## Component Data
 
@@ -431,4 +497,20 @@ source-node: <name of node which triggered the event>
 trigger-data: <event source specific data>
 ```
 `trigger-data` depends on the emitter of the event and may be null. For example, `trigger-region` sets this property to contain data about which entity entered the region.
+
+
+# Events
+
+Many systems trigger events and games can define their own custom events (typically triggered inside behaviours).
+
+Some built-in events triggered by the engine are:
+
+ * `action` — A user input or AI action. Typically used to control characters or the GUI.
+ * `region-entered` — A physics body has entered a `trigger-region` (this event is generated by the collision system, but is remapped to a user event name as defined in the `trigger-region`s event data).
+ * `region-exited` — A physics body has exited `trigger-region`  (this event is generated by the collision system, but is remapped to a user event name as defined in the `trigger-region`s event data)
+ * `state-changed` — A global state change has occured (for example, the game has been paused).
+
+Some internal events (that is, events which are not meant for the user to respond to but are used internally by the engine) are:
+
+ * `user-input` — Raw user input from an input device, prior to mapping to an action.
 

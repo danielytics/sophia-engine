@@ -5,6 +5,9 @@
 
 #include <functional>
 #include <string>
+#include "lib.h"
+
+#include <iostream>
 
 namespace Config {
     enum Error {
@@ -51,7 +54,11 @@ namespace Config {
             def(def_fns, defs...);
             return [def_fns](ErrorFn error_cb, const YAML::Node& node) {
                 for (auto fn : def_fns) {
-                    fn(error_cb, node);
+                    try {
+                        fn(error_cb, node);
+                    }
+                    catch (...) {
+                    }
                 }
             };
         }
@@ -231,20 +238,48 @@ namespace Config {
      */
     template <typename... Definitions>
     inline Def optional (Definitions... defs) {
+        Defs def_fns = Defs{};
+        detail::def(def_fns, defs...);
+        return [def_fns](ErrorFn error_cb, const YAML::Node& node) mutable {
+            // Override the error callback to detect unsuccessful parses
+            auto error_fn = [error_cb](const Error err, const std::string& name, const YAML::Node& node) {
+                if (err != Error::AttributeMissing) {
+                    // If the error is something other than attribute missing then we let the error callback handle this.
+                    error_cb(err, name, node);
+                }
+            };
+            // Attempt all definitions, ignore all attribute missing errors
+            for (auto fn : def_fns) {
+                // Attempt to parse the value
+                try {
+                    fn(error_fn, node);
+                } catch (...) {
+                    // Could not parse, continue
+                }
+            }
+        };
+    }
+
+    /**
+     * Like optional, but ignores all parse errors (not just missing attributes)
+     */
+    template <typename... Definitions>
+    inline Def attempt (Definitions... defs) {
             Defs def_fns = Defs{};
             detail::def(def_fns, defs...);
             return [def_fns](ErrorFn error_cb, const YAML::Node& node) mutable {
                 // Override the error callback to detect unsuccessful parses
                 auto error_fn = [error_cb](const Error err, const std::string& name, const YAML::Node& node) {
-                    if (err != Error::AttributeMissing) {
-                        // If the error is something other than attribute missing then we let the error callback handle this.
-                        error_cb(err, name, node);
-                    }
+
                 };
                 // Attempt all definitions, ignore all attribute missing errors
                 for (auto fn : def_fns) {
                     // Attempt to parse the value
-                    fn(error_fn, node);
+                    try {
+                        fn(error_fn, node);
+                    } catch (...) {
+                        // Could not parse, continue to next
+                    }
                 }
             };
         }
@@ -380,7 +415,7 @@ namespace Config {
      *
      */
     template <typename Type, typename... Children>
-    Def sequence (const std::string& name, Type& temp, std::vector<Type>& output, Children... children) {
+    Def sequence (const std::string& name, Type& temp, lib::vector<Type>& output, Children... children) {
         auto parse = detail::make_parser(children...);
         return [name, parse, &temp, &output](ErrorFn error_cb, const YAML::Node& input) mutable {
             YAML::Node node = input[name];
@@ -389,6 +424,7 @@ namespace Config {
                     try {
                         parse(error_cb, child);
                         output.push_back(temp);
+                        temp = {}; // reset
                     } catch (...) {
                         error_cb(BadParse, name, child);
                     }

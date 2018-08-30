@@ -16,13 +16,11 @@
 class Window
 {
 public:
-    Window ();
+    Window (class DeferredRenderer& renderer);
     ~Window();
 
     void open (const std::string& title, const YAML::Node&);
     void run ();
-
-
 
     GLuint u_current_time;
 
@@ -33,6 +31,7 @@ private:
     glm::vec4 viewport;
     float width;
     float height;
+    class DeferredRenderer& renderer;
 #ifdef DEBUG_BUILD
     bool debugMode;
 #endif

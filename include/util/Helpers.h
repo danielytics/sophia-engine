@@ -35,6 +35,14 @@ void move_back (InputContainer& in, OutputContainer& out)
     }
 }
 
+template <typename ContainerType>
+void pad_with (ContainerType& container, std::size_t size, typename ContainerType::value_type value)
+{
+    while (container.size() < size) {
+        container.push_back(value);
+    }
+}
+
 std::string readToString(const std::string& filename);
 
 }

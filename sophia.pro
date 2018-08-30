@@ -23,9 +23,8 @@ INCLUDEPATH += include \
 			   depends/EASTL/include
 #			   depends/assimp-4.1.0/include
 
-QMAKE_CXXFLAGS_RELEASE += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
+QMAKE_CXXFLAGS_RELEASE += -O3 -flto=thin -mavx -msse4.1 -mssse3 -msse3 -msse2 -DGLM_FORCE_INLINE -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME
 QMAKE_CXXFLAGS_DEBUG += -DSPDLOG_DEBUG_ON -DSPDLOG_TRACE_ON -DSPDLOG_NO_THREAD_ID -DSPDLOG_NO_NAME -DDEBUG_BUILD
-#QMAKE_CXXFLAGS_DEBUG += -O3 -msse4.1 -mssse3 -msse3 -msse2 -msse2 -DGLM_FORCE_INLINE
 
 contains(STD_LIB, EASTL) {
 	QMAKE_CXXFLAGS_RELEASE += -DUSE_EASTL
@@ -161,4 +160,10 @@ HEADERS += \
     include/ecs/components/Mesh.h \
     include/ecs/components/Transform.h \
     include/ecs/ctors/Transform.h \
-    include/ecs/ctors/Component.h
+    include/ecs/ctors/Component.h \
+    include/ecs/systems/System.h \
+    include/ecs/systems/sprite_render.h \
+    include/ecs/components/Labels.h \
+    include/graphics/Renderer.h \
+    include/util/Profiling.h \
+    include/util/Clock.h

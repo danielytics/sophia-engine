@@ -18,7 +18,10 @@ telemetry:
     dev_mode: Yes
     # Is logging enabled? Valid values are: No or one of "trace", "debug", "info", "warn", "error"
     # In release builds, trace and debug are ignored.
-    logging: debug
+    logging: trace
+    # Is profiling enabled? valid values are: Yes, No
+    # In release builds, profiling is ignored.
+    profiling: Yes
 
 # Configure the game
 game:

@@ -6,7 +6,9 @@
 namespace ecs {
 
 struct Transform {
-    glm::mat4 transformation;
+    glm::vec3 position;
+    glm::vec3 scale;
+    glm::vec3 rotation;
 };
 
 }

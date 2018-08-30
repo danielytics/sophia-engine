@@ -1,14 +1,18 @@
 #ifndef DEFERREDRENDERER_H
 #define DEFERREDRENDERER_H
 
+#include "lib.h"
+#include "Renderer.h"
 #include "Renderable.h"
 #include "SpritePool.h"
 
-class DeferredRenderer
+class DeferredRenderer : public graphics::Renderer
 {
 public:
-    explicit DeferredRenderer(bool enabledDebugRendering=false);
+    explicit DeferredRenderer();
     ~DeferredRenderer();
+
+    void setDebugRendering (bool enabledDebugRendering);
 
     void init (float width, float height, bool softInitialise=false);
     void term (bool softTerminate=false);
@@ -20,8 +24,12 @@ public:
 
     // Renderables
     inline void updateSprites (const std::vector<Sprite>& sprites) {
-        spritePool.update(sprites);
+        spritePool->update(sprites);
     }
+
+    // Renderer API
+    void submitSprites (const graphics::RenderMode&& renderMode, lib::vector<glm::vec4>&& positions, lib::vector<graphics::SpriteInstance>&& instanceData);
+    void commit ();
 
 private:
     Shader_t gbufferBackgroundShader;
@@ -60,7 +68,7 @@ private:
     Buffer_t quadVBO;
 
     // Renderables
-    SpritePool spritePool;
+    SpritePool* spritePool;
 };
 
 #endif // DEFERREDRENDERER_H
