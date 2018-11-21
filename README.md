@@ -38,12 +38,16 @@ Engine Dependencies:
 * [GLM](https://glm.g-truc.net/0.9.8/index.html) - OpenGL Mathematics library (The Happy Bunny/Modified MIT License)
 * [spdlog](https://github.com/gabime/spdlog) - Fast logging library (MIT License)
 * [LuaJIT](http://luajit.org/luajit.html) - Lua bindings and JIT runtime (MIT License)
-* [Assimp](http://assimp.org/) - Asset importer (BSD License)
 * [Bullet](https://github.com/bulletphysics/bullet3) - Physics engine (zlib License)
+* [FastNoiseSIMD](https://github.com/Auburns/FastNoiseSIMD) - Library of various SIMD-optimised noise functions (MIT License, note: Simplex noise is patent-encumbered when used for texture generation)
+* [PhysicsFS](http://icculus.org/physfs/) - Library for filesystem abstraction (zlib License)
+* [PhysFS++](https://github.com/kahowell/physfs-cpp) - C++ wrapper for PhysicsFS ([zlib License + notes](https://github.com/kahowell/physfs-cpp/blob/master/LICENSE.txt))
+* [EASTL](https://github.com/electronicarts/EASTL) - Alternative to C++ Standard Library, optimised for games ([Modified BSD License (3-Clause BSD license)](https://github.com/electronicarts/EASTL/blob/master/LICENSE)) - Optional dependency
 
 Editor Dependencies:
 
 * [Qt](https://www.qt.io/developers/) - GUI framework (Lesser General Public License v3)
+* [Assimp](http://assimp.org/) - Asset importer (BSD License)
 
 # Visual Scripting
 

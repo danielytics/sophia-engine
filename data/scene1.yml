@@ -1,0 +1,9 @@
+scene:
+  ground:
+    type: entity
+    comment: Entity representing the ground
+    components:
+      transform:
+        position: [1]
+        rotation: [0, 0.25, 0.5]
+      dynamic-shadow:

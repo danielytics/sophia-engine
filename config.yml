@@ -7,7 +7,10 @@ graphics:
     # Should vertical sync be enabled? Valid values are: Yes, No
     vsync: Yes
     # Should Full Screen Anti Aliasing be enabled? Valid values are: No, 2x, 4x, 8x, 16x
+    # TODO: probably needs to be replaced with settings for FXAA and other stuff...
     fsaa: 4x
+    # Shuld debug rendering be enabled? Ignored in release builds
+    debug: Yes
 
 # Configure telemetry and logging. This is a development/debug feature that should probably be disabled for release.
 telemetry:
@@ -15,4 +18,14 @@ telemetry:
     dev_mode: Yes
     # Is logging enabled? Valid values are: No or one of "trace", "debug", "info", "warn", "error"
     # In release builds, trace and debug are ignored.
-    logging: info
+    logging: trace
+    # Is profiling enabled? valid values are: Yes, No
+    # In release builds, profiling is ignored.
+    profiling: Yes
+
+# Configure the game
+game:
+    # Module files or directories for game data files and assets
+    sources: ["game.module", "data/"]
+    # Configuration file for the game
+    game_config: game.yml
